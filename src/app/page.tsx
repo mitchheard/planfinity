@@ -45,6 +45,7 @@ export default function HomePage() {
   const [drawerInput, setDrawerInput] = useState<DrawerInput>(DEFAULT_DRAWER_INPUT);
   const [selectedContainerTypeId, setSelectedContainerTypeId] = useState<string>(DEFAULT_CONTAINER_TYPES[0].id);
   const [placements, setPlacements] = useState<Placement[]>([]);
+  const [isPaletteCollapsed, setIsPaletteCollapsed] = useState(false);
 
   const drawerUnits = useMemo(() => deriveDrawerUnits(drawerInput), [drawerInput]);
   const printSummary = useMemo(
@@ -58,21 +59,27 @@ export default function HomePage() {
   };
 
   return (
-    <main className="min-h-screen bg-gray-50 p-6">
-      <div className="mx-auto grid max-w-6xl gap-4 lg:grid-cols-[320px_1fr]">
+    <main className="min-h-screen bg-gradient-to-b from-slate-50 via-white to-sky-50/40 p-4 sm:p-6">
+      <div className="mx-auto mb-4 flex max-w-7xl items-end justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-semibold tracking-tight text-slate-900">Planfinity</h1>
+          <p className="mt-1 text-sm text-slate-600">Design Gridfinity layouts faster, with live fit feedback.</p>
+        </div>
+      </div>
+
+      <div className="mx-auto grid max-w-7xl gap-4 lg:grid-cols-[320px_1fr]">
         <div className="space-y-4">
-          <h1 className="text-2xl font-bold text-gray-900">Planfinity MVP</h1>
           <DrawerForm initialValue={drawerInput} onApply={handleApplyDrawerInput} />
 
-          <section className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
-            <h2 className="text-lg font-semibold text-gray-900">Computed Grid</h2>
-            <p className="mt-1 text-sm text-gray-700">
+          <section className="rounded-2xl border border-slate-200/80 bg-white/90 p-4 shadow-sm shadow-slate-200/60 backdrop-blur">
+            <h2 className="text-lg font-semibold text-slate-900">Computed Grid</h2>
+            <p className="mt-2 inline-flex rounded-full bg-slate-100 px-3 py-1 text-sm font-medium text-slate-700">
               {drawerUnits.widthUnits} x {drawerUnits.depthUnits} units
             </p>
-            <p className="mt-2 text-sm text-gray-700">Placed Containers: {placements.length}</p>
+            <p className="mt-2 text-sm text-slate-700">Placed Containers: {placements.length}</p>
             <div className="mt-3">
-              <h3 className="text-sm font-semibold text-gray-900">Container Counts</h3>
-              <div className="mt-1 space-y-1 text-sm text-gray-700">
+              <h3 className="text-sm font-semibold text-slate-900">Container Counts</h3>
+              <div className="mt-1 space-y-1 text-sm text-slate-700">
                 {printSummary.containerCounts.length === 0 ? (
                   <p>No containers placed.</p>
                 ) : (
@@ -87,12 +94,12 @@ export default function HomePage() {
             </div>
 
             <div className="mt-3">
-              <h3 className="text-sm font-semibold text-gray-900">
+              <h3 className="text-sm font-semibold text-slate-900">
                 Baseplates (&le;{printSummary.baseplates.maxTileUnits}x
                 {printSummary.baseplates.maxTileUnits})
               </h3>
-              <p className="mt-1 text-sm text-gray-700">Total tiles: {printSummary.baseplates.totalTiles}</p>
-              <div className="mt-1 space-y-1 text-sm text-gray-700">
+              <p className="mt-1 text-sm text-slate-700">Total tiles: {printSummary.baseplates.totalTiles}</p>
+              <div className="mt-1 space-y-1 text-sm text-slate-700">
                 {printSummary.baseplates.sizeCounts.map((sizeCount) => (
                   <p key={`${sizeCount.widthUnits}x${sizeCount.depthUnits}`}>
                     {sizeCount.widthUnits}x{sizeCount.depthUnits}: {sizeCount.count}
@@ -102,24 +109,44 @@ export default function HomePage() {
             </div>
           </section>
 
-          <ContainerPalette
-            containerTypes={DEFAULT_CONTAINER_TYPES}
-            selectedContainerTypeId={selectedContainerTypeId}
-            onSelect={setSelectedContainerTypeId}
-          />
         </div>
 
-        <GridPlanner
-          drawerInput={drawerInput}
-          drawerUnits={drawerUnits}
-          containerTypes={DEFAULT_CONTAINER_TYPES}
-          selectedContainerTypeId={selectedContainerTypeId}
-          placements={placements}
-          onAddPlacement={(placement) => setPlacements((current) => [...current, placement])}
-          onRemovePlacement={(placementId) =>
-            setPlacements((current) => current.filter((placement) => placement.id !== placementId))
-          }
-        />
+        <div className="grid items-start gap-4 lg:grid-cols-[minmax(0,1fr)_auto]">
+          <GridPlanner
+            drawerInput={drawerInput}
+            drawerUnits={drawerUnits}
+            containerTypes={DEFAULT_CONTAINER_TYPES}
+            selectedContainerTypeId={selectedContainerTypeId}
+            placements={placements}
+            onAddPlacement={(placement) => setPlacements((current) => [...current, placement])}
+            onRemovePlacement={(placementId) =>
+              setPlacements((current) => current.filter((placement) => placement.id !== placementId))
+            }
+          />
+          <aside
+            className={`space-y-2 lg:sticky lg:top-6 ${
+              isPaletteCollapsed ? "w-14 self-start" : "w-full lg:w-[300px]"
+            }`}
+          >
+            <button
+              type="button"
+              onClick={() => setIsPaletteCollapsed((current) => !current)}
+              className={`w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 shadow-sm hover:bg-slate-50 ${
+                isPaletteCollapsed ? "h-12 px-0 text-xs" : ""
+              }`}
+              title={isPaletteCollapsed ? "Show container palette" : "Hide container palette"}
+            >
+              {isPaletteCollapsed ? "Show" : "Hide Palette"}
+            </button>
+            {!isPaletteCollapsed ? (
+              <ContainerPalette
+                containerTypes={DEFAULT_CONTAINER_TYPES}
+                selectedContainerTypeId={selectedContainerTypeId}
+                onSelect={setSelectedContainerTypeId}
+              />
+            ) : null}
+          </aside>
+        </div>
       </div>
     </main>
   );

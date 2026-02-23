@@ -36,13 +36,13 @@ export function DrawerForm({ initialValue, onApply }: DrawerFormProps) {
   };
 
   return (
-    <section className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
-      <h2 className="text-lg font-semibold text-gray-900">Drawer Input</h2>
+    <section className="rounded-2xl border border-slate-200/80 bg-white/90 p-4 shadow-sm shadow-slate-200/60 backdrop-blur">
+      <h2 className="text-lg font-semibold text-slate-900">Drawer Input</h2>
       <div className="mt-3 grid gap-3 sm:grid-cols-3">
-        <label className="text-sm text-gray-700">
-          Width (mm)
+        <label className="text-sm text-slate-700">
+          <span className="mb-1 block min-h-8 font-medium leading-tight">Width (mm)</span>
           <input
-            className="mt-1 w-full rounded border border-gray-300 px-2 py-1"
+            className="h-10 w-full rounded-lg border border-slate-300 bg-white px-2 py-1 text-slate-900 shadow-sm focus:border-sky-500 focus:outline-none focus:ring-2 focus:ring-sky-100"
             type="number"
             min={1}
             value={widthMm}
@@ -50,10 +50,10 @@ export function DrawerForm({ initialValue, onApply }: DrawerFormProps) {
           />
         </label>
 
-        <label className="text-sm text-gray-700">
-          Depth (mm)
+        <label className="text-sm text-slate-700">
+          <span className="mb-1 block min-h-8 font-medium leading-tight">Depth (mm)</span>
           <input
-            className="mt-1 w-full rounded border border-gray-300 px-2 py-1"
+            className="h-10 w-full rounded-lg border border-slate-300 bg-white px-2 py-1 text-slate-900 shadow-sm focus:border-sky-500 focus:outline-none focus:ring-2 focus:ring-sky-100"
             type="number"
             min={1}
             value={depthMm}
@@ -61,10 +61,10 @@ export function DrawerForm({ initialValue, onApply }: DrawerFormProps) {
           />
         </label>
 
-        <label className="text-sm text-gray-700">
-          Grid Pitch (mm)
+        <label className="text-sm text-slate-700">
+          <span className="mb-1 block min-h-8 font-medium leading-tight">Grid Pitch (mm)</span>
           <input
-            className="mt-1 w-full rounded border border-gray-300 px-2 py-1"
+            className="h-10 w-full rounded-lg border border-slate-300 bg-white px-2 py-1 text-slate-900 shadow-sm focus:border-sky-500 focus:outline-none focus:ring-2 focus:ring-sky-100"
             type="number"
             min={1}
             value={gridPitchMm}
@@ -76,12 +76,12 @@ export function DrawerForm({ initialValue, onApply }: DrawerFormProps) {
       <div className="mt-3 flex items-center gap-3">
         <button
           type="button"
-          className="rounded bg-blue-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-blue-700"
+          className="rounded-lg bg-sky-600 px-3 py-1.5 text-sm font-medium text-white shadow-sm hover:bg-sky-700"
           onClick={applyForm}
         >
           Apply
         </button>
-        {error ? <p className="text-sm text-red-600">{error}</p> : null}
+        {error ? <p className="text-sm text-rose-600">{error}</p> : null}
       </div>
     </section>
   );

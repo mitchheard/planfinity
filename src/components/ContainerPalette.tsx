@@ -43,11 +43,11 @@ export function ContainerPalette({ containerTypes, selectedContainerTypeId, onSe
   });
 
   return (
-    <section className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
-      <h2 className="text-lg font-semibold text-gray-900">Container Palette</h2>
-      <p className="mt-1 text-sm text-gray-600">Group by shape, then compare by depth.</p>
+    <section className="rounded-2xl border border-slate-200/80 bg-white/90 p-4 shadow-sm shadow-slate-200/60 backdrop-blur">
+      <h2 className="text-lg font-semibold text-slate-900">Container Palette</h2>
+      <p className="mt-1 text-sm text-slate-600">Group by shape, then compare by depth.</p>
 
-      <div className="mt-3 rounded border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-800">
+      <div className="mt-3 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-800">
         <span className="font-medium">Selected:</span>{" "}
         {selectedContainerType
           ? `${selectedContainerType.widthUnits}x${selectedContainerType.depthUnits}`
@@ -59,8 +59,10 @@ export function ContainerPalette({ containerTypes, selectedContainerTypeId, onSe
           <button
             type="button"
             onClick={() => setPaletteFilter("all")}
-            className={`rounded border px-2 py-1 text-xs font-medium ${
-              paletteFilter === "all" ? "border-gray-900 bg-gray-900 text-white" : "border-gray-300 text-gray-700"
+            className={`rounded-lg border px-2 py-1 text-xs font-medium ${
+              paletteFilter === "all"
+                ? "border-slate-900 bg-slate-900 text-white"
+                : "border-slate-300 bg-white text-slate-700 hover:bg-slate-50"
             }`}
             aria-pressed={paletteFilter === "all"}
           >
@@ -69,10 +71,10 @@ export function ContainerPalette({ containerTypes, selectedContainerTypeId, onSe
           <button
             type="button"
             onClick={() => setPaletteFilter("squares")}
-            className={`rounded border px-2 py-1 text-xs font-medium ${
+            className={`rounded-lg border px-2 py-1 text-xs font-medium ${
               paletteFilter === "squares"
-                ? "border-gray-900 bg-gray-900 text-white"
-                : "border-gray-300 text-gray-700"
+                ? "border-slate-900 bg-slate-900 text-white"
+                : "border-slate-300 bg-white text-slate-700 hover:bg-slate-50"
             }`}
             aria-pressed={paletteFilter === "squares"}
           >
@@ -81,10 +83,10 @@ export function ContainerPalette({ containerTypes, selectedContainerTypeId, onSe
           <button
             type="button"
             onClick={() => setPaletteFilter("rectangles")}
-            className={`rounded border px-2 py-1 text-xs font-medium ${
+            className={`rounded-lg border px-2 py-1 text-xs font-medium ${
               paletteFilter === "rectangles"
-                ? "border-gray-900 bg-gray-900 text-white"
-                : "border-gray-300 text-gray-700"
+                ? "border-slate-900 bg-slate-900 text-white"
+                : "border-slate-300 bg-white text-slate-700 hover:bg-slate-50"
             }`}
             aria-pressed={paletteFilter === "rectangles"}
           >
@@ -95,7 +97,7 @@ export function ContainerPalette({ containerTypes, selectedContainerTypeId, onSe
         <button
           type="button"
           onClick={() => setIsCompact((current) => !current)}
-          className="rounded border border-gray-300 px-2 py-1 text-xs font-medium text-gray-700"
+          className="rounded-lg border border-slate-300 bg-white px-2 py-1 text-xs font-medium text-slate-700 hover:bg-slate-50"
           aria-pressed={isCompact}
         >
           {isCompact ? "Compact" : "Expanded"}
@@ -105,7 +107,7 @@ export function ContainerPalette({ containerTypes, selectedContainerTypeId, onSe
       <div className="mt-4 space-y-3">
         {Array.from(groupedByDepth.entries()).map(([depthUnits, depthGroup]) => (
           <div key={`depth-${depthUnits}`}>
-            <h3 className="text-xs font-semibold uppercase tracking-wide text-gray-600">Depth {depthUnits} units</h3>
+            <h3 className="text-xs font-semibold uppercase tracking-wide text-slate-600">Depth {depthUnits} units</h3>
             <div className="mt-2 flex flex-wrap gap-2">
               {depthGroup.map((containerType) => {
                 const isSelected = containerType.id === selectedContainerTypeId;
@@ -115,17 +117,17 @@ export function ContainerPalette({ containerTypes, selectedContainerTypeId, onSe
                     key={containerType.id}
                     type="button"
                     onClick={() => onSelect(containerType.id)}
-                    className={`rounded border text-left ${
+                    className={`rounded-lg border text-left shadow-sm transition hover:-translate-y-px ${
                       isCompact ? "px-2 py-1 text-xs" : "px-3 py-2 text-sm"
                     } ${
-                      isSelected ? "border-gray-900 ring-2 ring-gray-300" : "border-gray-300"
+                      isSelected ? "border-slate-900 ring-2 ring-sky-200" : "border-slate-300"
                     }`}
                     style={{ backgroundColor: containerType.color }}
                     aria-pressed={isSelected}
                   >
                     <div className="font-medium">{containerType.label}</div>
                     {isCompact ? null : (
-                      <div className="text-xs text-gray-700">
+                      <div className="text-xs text-slate-700">
                         {containerType.widthUnits}x{containerType.depthUnits} units
                       </div>
                     )}
