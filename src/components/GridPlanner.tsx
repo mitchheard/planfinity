@@ -207,33 +207,37 @@ export function GridPlanner({
         rotated. Near edges, placement auto-shifts to stay in bounds.
       </p>
       {showRotateTip ? (
-        <div className="mt-2 flex flex-wrap items-center gap-2 rounded border border-blue-200 bg-blue-50 px-3 py-2 text-xs text-blue-900">
-          <span className="font-medium">Tip:</span>
-          <span>
-            Hold <kbd className="rounded border border-blue-300 bg-white px-1.5 py-0.5 font-mono text-[11px]">R</kbd>{" "}
-            to rotate the ghost preview before placing.
-          </span>
-          <span>
-            Or use{" "}
-            <kbd className="rounded border border-blue-300 bg-white px-1.5 py-0.5 font-mono text-[11px]">
-              Right Click
-            </kbd>{" "}
-            (or Control-click on Mac) to place a rotated bin directly.
-          </span>
-          <span
-            className={`rounded border px-2 py-0.5 font-medium ${
-              isRotateHeld ? "border-blue-600 bg-blue-100 text-blue-700" : "border-blue-300 bg-white text-blue-800"
-            }`}
-          >
-            Rotation: {isRotateHeld ? "Active (R held)" : "Normal"}
-          </span>
-          <button
-            type="button"
-            onClick={dismissRotateTip}
-            className="ml-auto rounded border border-blue-300 bg-white px-2 py-0.5 text-[11px] font-medium text-blue-900 hover:bg-blue-100"
-          >
-            Got it
-          </button>
+        <div className="mt-2 rounded border border-blue-200 bg-blue-50 px-3 py-2 text-xs text-blue-900">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="font-medium">Tip:</span>
+            <span>
+              Hold <kbd className="rounded border border-blue-300 bg-white px-1.5 py-0.5 font-mono text-[11px]">R</kbd>{" "}
+              to rotate the ghost preview before placing.
+            </span>
+            <span>
+              Or use{" "}
+              <kbd className="rounded border border-blue-300 bg-white px-1.5 py-0.5 font-mono text-[11px]">
+                Right Click
+              </kbd>{" "}
+              (or Control-click on Mac) to place a rotated bin directly.
+            </span>
+          </div>
+          <div className="mt-2 flex items-center justify-between gap-2">
+            <span
+              className={`rounded border px-2 py-0.5 font-medium whitespace-nowrap ${
+                isRotateHeld ? "border-blue-600 bg-blue-100 text-blue-700" : "border-blue-300 bg-white text-blue-800"
+              }`}
+            >
+              Rotation: {isRotateHeld ? "Active (R held)" : "Normal"}
+            </span>
+            <button
+              type="button"
+              onClick={dismissRotateTip}
+              className="rounded border border-blue-300 bg-white px-2 py-0.5 text-[11px] font-medium text-blue-900 hover:bg-blue-100"
+            >
+              Got it
+            </button>
+          </div>
         </div>
       ) : (
         <p className="mt-2 text-xs text-slate-600">
