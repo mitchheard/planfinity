@@ -14,12 +14,32 @@ const DEFAULT_DRAWER_INPUT: DrawerInput = {
   gridPitchMm: 42,
 };
 
-const DEFAULT_CONTAINER_TYPES: ContainerType[] = [
-  { id: "1x1", label: "1x1", color: "#cfe8ff", widthUnits: 1, depthUnits: 1 },
-  { id: "2x1", label: "2x1", color: "#d9f7be", widthUnits: 2, depthUnits: 1 },
-  { id: "2x2", label: "2x2", color: "#ffd9b3", widthUnits: 2, depthUnits: 2 },
-  { id: "3x2", label: "3x2", color: "#f4d3ff", widthUnits: 3, depthUnits: 2 },
+const CONTAINER_COLORS = [
+  "#cfe8ff",
+  "#d9f7be",
+  "#ffd9b3",
+  "#f4d3ff",
+  "#ffe7ba",
+  "#ffd6e7",
+  "#d6f5f5",
+  "#e8e8ff",
 ];
+
+const DEFAULT_CONTAINER_TYPES: ContainerType[] = Array.from({ length: 5 }, (_, depthIndex) => depthIndex + 1).flatMap(
+  (depthUnits) =>
+    Array.from({ length: depthUnits }, (_, widthIndex) => widthIndex + 1).map((widthUnits, indexWithinDepth) => {
+      const colorIndex = (depthUnits + indexWithinDepth) % CONTAINER_COLORS.length;
+      const label = `${widthUnits}x${depthUnits}`;
+
+      return {
+        id: label,
+        label,
+        color: CONTAINER_COLORS[colorIndex],
+        widthUnits,
+        depthUnits,
+      };
+    }),
+);
 
 export default function HomePage() {
   const [drawerInput, setDrawerInput] = useState<DrawerInput>(DEFAULT_DRAWER_INPUT);
@@ -43,11 +63,6 @@ export default function HomePage() {
         <div className="space-y-4">
           <h1 className="text-2xl font-bold text-gray-900">Planfinity MVP</h1>
           <DrawerForm initialValue={drawerInput} onApply={handleApplyDrawerInput} />
-          <ContainerPalette
-            containerTypes={DEFAULT_CONTAINER_TYPES}
-            selectedContainerTypeId={selectedContainerTypeId}
-            onSelect={setSelectedContainerTypeId}
-          />
 
           <section className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
             <h2 className="text-lg font-semibold text-gray-900">Computed Grid</h2>
@@ -86,9 +101,16 @@ export default function HomePage() {
               </div>
             </div>
           </section>
+
+          <ContainerPalette
+            containerTypes={DEFAULT_CONTAINER_TYPES}
+            selectedContainerTypeId={selectedContainerTypeId}
+            onSelect={setSelectedContainerTypeId}
+          />
         </div>
 
         <GridPlanner
+          drawerInput={drawerInput}
           drawerUnits={drawerUnits}
           containerTypes={DEFAULT_CONTAINER_TYPES}
           selectedContainerTypeId={selectedContainerTypeId}

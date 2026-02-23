@@ -22,6 +22,7 @@ export type Placement = {
   containerTypeId: string;
   x: number;
   y: number;
+  isRotated?: boolean;
 };
 
 export type PlannerLayout = {

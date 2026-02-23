@@ -7,6 +7,20 @@ type Rectangle = {
   height: number;
 };
 
+function getPlacementDimensions(placement: Placement, containerType: ContainerType): { width: number; height: number } {
+  if (placement.isRotated) {
+    return {
+      width: containerType.depthUnits,
+      height: containerType.widthUnits,
+    };
+  }
+
+  return {
+    width: containerType.widthUnits,
+    height: containerType.depthUnits,
+  };
+}
+
 export function deriveDrawerUnits(input: DrawerInput): DrawerUnits {
   if (input.gridPitchMm <= 0) {
     return { widthUnits: 0, depthUnits: 0 };
@@ -50,12 +64,13 @@ export function doesPlacementCollide(
     if (!placedType) {
       return false;
     }
+    const placedDimensions = getPlacementDimensions(placement, placedType);
 
     const existing: Rectangle = {
       x: placement.x,
       y: placement.y,
-      width: placedType.widthUnits,
-      height: placedType.depthUnits,
+      width: placedDimensions.width,
+      height: placedDimensions.height,
     };
 
     return doRectanglesOverlap(existing, candidate);

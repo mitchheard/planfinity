@@ -77,6 +77,20 @@ describe("doesPlacementCollide", () => {
     );
     expect(result).toBe(true);
   });
+
+  it("detects collision when an existing placement is rotated", () => {
+    const placements: Placement[] = [{ containerTypeId: "wide", x: 0, y: 0, isRotated: true }];
+    const typeMap = new Map(Object.values(containerTypesById).map((t) => [t.id, t]));
+
+    const result = doesPlacementCollide(
+      placements,
+      typeMap,
+      { id: "candidate", label: "Candidate", widthUnits: 1, depthUnits: 2 },
+      0,
+      2,
+    );
+    expect(result).toBe(true);
+  });
 });
 
 describe("doRectanglesOverlap", () => {
