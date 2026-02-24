@@ -172,6 +172,7 @@ export default function HomePage() {
             {!isPaletteCollapsed ? (
               <ContainerPalette
                 containerTypes={DEFAULT_CONTAINER_TYPES}
+                gridPitchMm={drawerInput.gridPitchMm}
                 selectedContainerTypeId={selectedContainerTypeId}
                 onSelect={setSelectedContainerTypeId}
               />
