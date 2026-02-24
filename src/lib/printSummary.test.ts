@@ -93,6 +93,22 @@ it("sliceBaseplatesLeq splits into <=5x5 tiles and tracks size counts", () => {
   }
 });
 
+it("sliceBaseplatesLeq supports balanced strategy", () => {
+  const result = sliceBaseplatesLeq({ widthUnits: 10, depthUnits: 8 }, 5, "balanced");
+
+  expect(result.totalTiles).toBe(4);
+  expect(result.coveredAreaUnits).toBe(80);
+  expect(result.sizeCounts).toEqual([{ widthUnits: 5, depthUnits: 4, count: 4 }]);
+});
+
+it("sliceBaseplatesLeq returns same breakdown for 10x10 in both strategies", () => {
+  const maxFirst = sliceBaseplatesLeq({ widthUnits: 10, depthUnits: 10 }, 5, "max-first");
+  const balanced = sliceBaseplatesLeq({ widthUnits: 10, depthUnits: 10 }, 5, "balanced");
+
+  expect(maxFirst.sizeCounts).toEqual([{ widthUnits: 5, depthUnits: 5, count: 4 }]);
+  expect(balanced.sizeCounts).toEqual(maxFirst.sizeCounts);
+});
+
 it("buildPrintSummary returns both container and baseplate summaries", () => {
   const placements: Placement[] = [
     { containerTypeId: "ct-1x1", x: 0, y: 0 },
@@ -124,5 +140,17 @@ it("buildPrintSummary returns both container and baseplate summaries", () => {
   ]);
   expect(result.baseplates.totalTiles).toBe(4);
   expect(result.baseplates.coveredAreaUnits).toBe(36);
+});
+
+it("buildPrintSummary accepts baseplate strategy", () => {
+  const result = buildPrintSummary(
+    { widthUnits: 10, depthUnits: 8 },
+    [],
+    containerTypes,
+    5,
+    "balanced",
+  );
+
+  expect(result.baseplates.sizeCounts).toEqual([{ widthUnits: 5, depthUnits: 4, count: 4 }]);
 });
 });

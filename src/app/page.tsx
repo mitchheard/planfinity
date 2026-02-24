@@ -6,7 +6,7 @@ import { DrawerForm } from "@/components/DrawerForm";
 import { GridPlanner } from "@/components/GridPlanner";
 import { deriveDrawerUnits } from "@/lib/planner";
 import { buildPrintSummary } from "@/lib/printSummary";
-import type { ContainerType, DrawerInput, Placement } from "@/types/planfinity";
+import type { BaseplateStrategy, ContainerType, DrawerInput, Placement } from "@/types/planfinity";
 
 const DEFAULT_DRAWER_INPUT: DrawerInput = {
   widthMm: 600,
@@ -46,11 +46,12 @@ export default function HomePage() {
   const [selectedContainerTypeId, setSelectedContainerTypeId] = useState<string>(DEFAULT_CONTAINER_TYPES[0].id);
   const [placements, setPlacements] = useState<Placement[]>([]);
   const [isPaletteCollapsed, setIsPaletteCollapsed] = useState(false);
+  const [baseplateStrategy, setBaseplateStrategy] = useState<BaseplateStrategy>("max-first");
 
   const drawerUnits = useMemo(() => deriveDrawerUnits(drawerInput), [drawerInput]);
   const printSummary = useMemo(
-    () => buildPrintSummary(drawerUnits, placements, DEFAULT_CONTAINER_TYPES),
-    [drawerUnits, placements],
+    () => buildPrintSummary(drawerUnits, placements, DEFAULT_CONTAINER_TYPES, 5, baseplateStrategy),
+    [drawerUnits, placements, baseplateStrategy],
   );
 
   const handleApplyDrawerInput = (nextInput: DrawerInput) => {
@@ -90,6 +91,36 @@ export default function HomePage() {
                     </p>
                   ))
                 )}
+              </div>
+            </div>
+
+            <div className="mt-3">
+              <h3 className="text-sm font-semibold text-slate-900">Baseplate Strategy</h3>
+              <div className="mt-2 flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  onClick={() => setBaseplateStrategy("max-first")}
+                  className={`rounded-lg border px-2 py-1 text-xs font-medium ${
+                    baseplateStrategy === "max-first"
+                      ? "border-slate-900 bg-slate-900 text-white"
+                      : "border-slate-300 bg-white text-slate-700 hover:bg-slate-50"
+                  }`}
+                  aria-pressed={baseplateStrategy === "max-first"}
+                >
+                  Max-first
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setBaseplateStrategy("balanced")}
+                  className={`rounded-lg border px-2 py-1 text-xs font-medium ${
+                    baseplateStrategy === "balanced"
+                      ? "border-slate-900 bg-slate-900 text-white"
+                      : "border-slate-300 bg-white text-slate-700 hover:bg-slate-50"
+                  }`}
+                  aria-pressed={baseplateStrategy === "balanced"}
+                >
+                  Balanced
+                </button>
               </div>
             </div>
 

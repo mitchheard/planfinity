@@ -60,6 +60,8 @@ export type BaseplateSummary = {
   coveredAreaUnits: number;
 };
 
+export type BaseplateStrategy = "max-first" | "balanced";
+
 export type PrintSummary = {
   containerCounts: ContainerCountSummary[];
   baseplates: BaseplateSummary;
