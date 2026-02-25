@@ -59,6 +59,150 @@ export default function HomePage() {
     setPlacements([]);
   };
 
+  const handlePrintSummary = () => {
+    const printWindow = window.open("", "_blank");
+    if (!printWindow) {
+      return;
+    }
+
+    const escapeHtml = (value: string) =>
+      value
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#39;");
+
+    const containerRows =
+      printSummary.containerCounts.length === 0
+        ? `<tr><td colspan="3">No containers placed.</td></tr>`
+        : printSummary.containerCounts
+            .map(
+              (containerCount) =>
+                `<tr><td>${escapeHtml(containerCount.label)}</td><td>${containerCount.widthUnits}x${containerCount.depthUnits}</td><td>${containerCount.count}</td></tr>`,
+            )
+            .join("");
+
+    const baseplateRows =
+      printSummary.baseplates.sizeCounts.length === 0
+        ? `<tr><td colspan="2">No baseplates required.</td></tr>`
+        : printSummary.baseplates.sizeCounts
+            .map(
+              (baseplateSize) =>
+                `<tr><td>${baseplateSize.widthUnits}x${baseplateSize.depthUnits}</td><td>${baseplateSize.count}</td></tr>`,
+            )
+            .join("");
+
+    const containerTotal = printSummary.containerCounts.reduce((total, item) => total + item.count, 0);
+    const printDate = new Date().toLocaleString();
+
+    const printHtml = `<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Planfinity Print List</title>
+    <style>
+      :root {
+        color-scheme: light;
+      }
+      body {
+        margin: 24px;
+        color: #0f172a;
+        background: #ffffff;
+        font-family: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+      }
+      h1, h2 {
+        margin: 0 0 8px;
+      }
+      p {
+        margin: 0 0 8px;
+      }
+      .meta {
+        margin-bottom: 16px;
+        color: #334155;
+        font-size: 14px;
+      }
+      section {
+        margin-top: 20px;
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+      }
+      th,
+      td {
+        border: 1px solid #cbd5e1;
+        padding: 8px;
+        text-align: left;
+      }
+      th {
+        background: #f1f5f9;
+      }
+      .totals {
+        margin-top: 16px;
+        font-weight: 600;
+      }
+      @media print {
+        body {
+          margin: 0.5in;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Planfinity Print List</h1>
+    <div class="meta">
+      <p>Generated: ${escapeHtml(printDate)}</p>
+      <p>Drawer input: ${drawerInput.widthMm}mm x ${drawerInput.depthMm}mm @ ${drawerInput.gridPitchMm}mm pitch</p>
+      <p>Computed grid: ${drawerUnits.widthUnits} x ${drawerUnits.depthUnits} units</p>
+      <p>Baseplate strategy: ${baseplateStrategy}</p>
+    </div>
+
+    <section>
+      <h2>Containers to Print</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>Container</th>
+            <th>Size (units)</th>
+            <th>Qty</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${containerRows}
+        </tbody>
+      </table>
+    </section>
+
+    <section>
+      <h2>Baseplates to Print</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>Baseplate Size (units)</th>
+            <th>Qty</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${baseplateRows}
+        </tbody>
+      </table>
+    </section>
+
+    <p class="totals">
+      Totals: ${containerTotal} containers, ${printSummary.baseplates.totalTiles} baseplates
+    </p>
+  </body>
+</html>`;
+    printWindow.document.open();
+    printWindow.document.write(printHtml);
+    printWindow.document.close();
+    printWindow.onload = () => {
+      printWindow.focus();
+      printWindow.print();
+    };
+  };
+
   return (
     <main className="min-h-screen bg-gradient-to-b from-slate-50 via-white to-sky-50/40 p-4 sm:p-6">
       <div className="mx-auto mb-4 flex max-w-7xl items-end justify-between gap-4">
@@ -137,6 +281,15 @@ export default function HomePage() {
                   </p>
                 ))}
               </div>
+            </div>
+            <div className="mt-4">
+              <button
+                type="button"
+                onClick={handlePrintSummary}
+                className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 shadow-sm hover:bg-slate-50"
+              >
+                Print List
+              </button>
             </div>
           </section>
 

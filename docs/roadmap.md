@@ -65,6 +65,7 @@ The MVP is complete when all criteria below pass:
 - Drag-and-drop placement UX
 - Rotate containers (90 degrees)
 - Smart packing suggestions/autolayout
+- Prompt-based AI layout generation from natural language storage goals (suggest container types + counts to fill the drawer)
 - Multiple saved layouts
 - Import/export layout JSON
 - Print estimate features (material/time)

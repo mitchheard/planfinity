@@ -8,7 +8,8 @@ The format is based on Keep a Changelog, and this project follows Semantic Versi
 
 ### Added
 
-- None yet.
+- Print List button in the computed grid summary that opens a printer-friendly bill of materials for containers and baseplates.
+- Roadmap entries for prompt-based AI layout suggestions that recommend container mixes from natural language storage goals.
 
 ### Changed
 

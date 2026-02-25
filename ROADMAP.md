@@ -14,6 +14,7 @@ This roadmap tracks the planned direction for Planfinity.
 - Container rotation support (90 degrees).
 - Multiple saved layouts per browser (local-only).
 - JSON import/export for layout sharing.
+- Prompt-based AI layout suggestions (for example: "I want to store pliers, screws, and drill bits") that propose container mixes to fill the drawer.
 
 ## Later (v0.3.x+)
 
