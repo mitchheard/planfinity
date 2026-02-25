@@ -4,7 +4,23 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   title: "Planfinity",
-  description: "Drawer container planning MVP",
+  description:
+    "Design Gridfinity drawer layouts fast, with live fit feedback and print-ready baseplate + bin suggestions.",
+  metadataBase: new URL("https://planfinity.app"),
+  openGraph: {
+    title: "Planfinity",
+    description:
+      "Design Gridfinity drawer layouts fast, with live fit feedback and print-ready baseplate + bin suggestions.",
+    url: "https://planfinity.app",
+    siteName: "Planfinity",
+    type: "website",
+  },
+  twitter: {
+    card: "summary",
+    title: "Planfinity",
+    description:
+      "Design Gridfinity drawer layouts fast, with live fit feedback and print-ready baseplate + bin suggestions.",
+  },
 };
 
 export default function RootLayout({

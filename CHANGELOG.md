@@ -8,7 +8,15 @@ The format is based on Keep a Changelog, and this project follows Semantic Versi
 
 ### Added
 
-- Placeholder section for upcoming changes.
+- None yet.
+
+### Changed
+
+- None yet.
+
+### Fixed
+
+- None yet.
 
 ## [0.1.1] - 2026-02-24
 
