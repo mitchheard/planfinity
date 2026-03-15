@@ -5,7 +5,7 @@ import "./globals.css";
 export const metadata: Metadata = {
   title: "Planfinity",
   icons: {
-    icon: "/favicon.png",
+    icon: "/favicon.svg",
   },
   description:
     "Design Gridfinity drawer layouts fast, with live fit feedback and print-ready baseplate + bin suggestions.",
@@ -33,6 +33,12 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
+      <head>
+        <link
+          href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500&display=swap"
+          rel="stylesheet"
+        />
+      </head>
       <body>{children}</body>
     </html>
   );

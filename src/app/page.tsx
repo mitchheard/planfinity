@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import { ContainerPalette } from "@/components/ContainerPalette";
 import { DrawerForm } from "@/components/DrawerForm";
 import { GridPlanner } from "@/components/GridPlanner";
+import { Topbar } from "@/components/Topbar";
 import { deriveDrawerUnits } from "@/lib/planner";
 import { buildPrintSummary } from "@/lib/printSummary";
 import type { BaseplateStrategy, ContainerType, DrawerInput, Placement } from "@/types/planfinity";
@@ -14,38 +15,46 @@ const DEFAULT_DRAWER_INPUT: DrawerInput = {
   gridPitchMm: 42,
 };
 
-const CONTAINER_COLORS = [
-  "#cfe8ff",
-  "#d9f7be",
-  "#ffd9b3",
-  "#f4d3ff",
-  "#ffe7ba",
-  "#ffd6e7",
-  "#d6f5f5",
-  "#e8e8ff",
-];
-
-const DEFAULT_CONTAINER_TYPES: ContainerType[] = Array.from({ length: 5 }, (_, depthIndex) => depthIndex + 1).flatMap(
-  (depthUnits) =>
-    Array.from({ length: depthUnits }, (_, widthIndex) => widthIndex + 1).map((widthUnits, indexWithinDepth) => {
-      const colorIndex = (depthUnits + indexWithinDepth) % CONTAINER_COLORS.length;
+function buildContainerTypes(): ContainerType[] {
+  const types: ContainerType[] = [];
+  for (let depthUnits = 1; depthUnits <= 5; depthUnits++) {
+    for (let widthUnits = 1; widthUnits <= depthUnits; widthUnits++) {
       const label = `${widthUnits}x${depthUnits}`;
-
-      return {
+      types.push({
         id: label,
         label,
-        color: CONTAINER_COLORS[colorIndex],
         widthUnits,
         depthUnits,
-      };
-    }),
-);
+      });
+    }
+  }
+  return types;
+}
+
+const DEFAULT_CONTAINER_TYPES = buildContainerTypes();
+
+function computeCoveragePercent(
+  drawerUnits: { widthUnits: number; depthUnits: number },
+  placements: Placement[],
+  containerTypeById: Map<string, ContainerType>,
+): number {
+  if (drawerUnits.widthUnits <= 0 || drawerUnits.depthUnits <= 0) return 0;
+  const totalCells = drawerUnits.widthUnits * drawerUnits.depthUnits;
+  let used = 0;
+  for (const p of placements) {
+    const ct = containerTypeById.get(p.containerTypeId);
+    if (!ct) continue;
+    const w = p.isRotated ? ct.depthUnits : ct.widthUnits;
+    const h = p.isRotated ? ct.widthUnits : ct.depthUnits;
+    used += w * h;
+  }
+  return Math.round((used / totalCells) * 100);
+}
 
 export default function HomePage() {
   const [drawerInput, setDrawerInput] = useState<DrawerInput>(DEFAULT_DRAWER_INPUT);
   const [selectedContainerTypeId, setSelectedContainerTypeId] = useState<string>(DEFAULT_CONTAINER_TYPES[0].id);
   const [placements, setPlacements] = useState<Placement[]>([]);
-  const [isPaletteCollapsed, setIsPaletteCollapsed] = useState(false);
   const [baseplateStrategy, setBaseplateStrategy] = useState<BaseplateStrategy>("max-first");
 
   const drawerUnits = useMemo(() => deriveDrawerUnits(drawerInput), [drawerInput]);
@@ -53,24 +62,57 @@ export default function HomePage() {
     () => buildPrintSummary(drawerUnits, placements, DEFAULT_CONTAINER_TYPES, 5, baseplateStrategy),
     [drawerUnits, placements, baseplateStrategy],
   );
+  const containerTypeById = useMemo(
+    () => new Map(DEFAULT_CONTAINER_TYPES.map((c) => [c.id, c])),
+    [],
+  );
+  const coveragePercent = useMemo(
+    () => computeCoveragePercent(drawerUnits, placements, containerTypeById),
+    [drawerUnits, placements, containerTypeById],
+  );
+
+  const baseplatesSameForBothStrategies = useMemo(() => {
+    if (drawerUnits.widthUnits <= 0 || drawerUnits.depthUnits <= 0) return true;
+    const maxFirst = buildPrintSummary(drawerUnits, placements, DEFAULT_CONTAINER_TYPES, 5, "max-first");
+    const balanced = buildPrintSummary(drawerUnits, placements, DEFAULT_CONTAINER_TYPES, 5, "balanced");
+    const a = maxFirst.baseplates.sizeCounts;
+    const b = balanced.baseplates.sizeCounts;
+    if (a.length !== b.length) return false;
+    return a.every(
+      (s, i) =>
+        b[i] &&
+        s.widthUnits === b[i].widthUnits &&
+        s.depthUnits === b[i].depthUnits &&
+        s.count === b[i].count,
+    );
+  }, [drawerUnits, placements]);
 
   const handleApplyDrawerInput = (nextInput: DrawerInput) => {
     setDrawerInput(nextInput);
     setPlacements([]);
   };
 
+  const handleNewLayout = () => {
+    setDrawerInput(DEFAULT_DRAWER_INPUT);
+    setPlacements([]);
+  };
+
+  const handleLoad = () => {
+    // TODO: wire to load from storage/file
+  };
+
+  const handleSave = () => {
+    // TODO: wire to save to storage/file
+  };
+
   const handleClearLayout = () => {
-    if (placements.length === 0) {
-      return;
-    }
+    if (placements.length === 0) return;
     setPlacements([]);
   };
 
   const handlePrintSummary = () => {
     const printWindow = window.open("", "_blank");
-    if (!printWindow) {
-      return;
-    }
+    if (!printWindow) return;
 
     const escapeHtml = (value: string) =>
       value
@@ -109,51 +151,17 @@ export default function HomePage() {
     <meta charset="utf-8" />
     <title>Planfinity Print List</title>
     <style>
-      :root {
-        color-scheme: light;
-      }
-      body {
-        margin: 24px;
-        color: #0f172a;
-        background: #ffffff;
-        font-family: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
-      }
-      h1, h2 {
-        margin: 0 0 8px;
-      }
-      p {
-        margin: 0 0 8px;
-      }
-      .meta {
-        margin-bottom: 16px;
-        color: #334155;
-        font-size: 14px;
-      }
-      section {
-        margin-top: 20px;
-      }
-      table {
-        width: 100%;
-        border-collapse: collapse;
-      }
-      th,
-      td {
-        border: 1px solid #cbd5e1;
-        padding: 8px;
-        text-align: left;
-      }
-      th {
-        background: #f1f5f9;
-      }
-      .totals {
-        margin-top: 16px;
-        font-weight: 600;
-      }
-      @media print {
-        body {
-          margin: 0.5in;
-        }
-      }
+      :root { color-scheme: light; }
+      body { margin: 24px; color: var(--text-primary, #1A1916); background: var(--surface, #fff); font-family: var(--font-sans), sans-serif; }
+      h1, h2 { margin: 0 0 8px; }
+      p { margin: 0 0 8px; }
+      .meta { margin-bottom: 16px; color: var(--text-secondary, #6B6860); font-size: 14px; }
+      section { margin-top: 20px; }
+      table { width: 100%; border-collapse: collapse; }
+      th, td { border: 1px solid var(--border, #D6D2C8); padding: 8px; text-align: left; }
+      th { background: var(--surface-2, #EEEBe4); }
+      .totals { margin-top: 16px; font-weight: 600; }
+      @media print { body { margin: 0.5in; } }
     </style>
   </head>
   <body>
@@ -164,41 +172,21 @@ export default function HomePage() {
       <p>Computed grid: ${drawerUnits.widthUnits} x ${drawerUnits.depthUnits} units</p>
       <p>Baseplate strategy: ${baseplateStrategy}</p>
     </div>
-
     <section>
       <h2>Containers to Print</h2>
       <table>
-        <thead>
-          <tr>
-            <th>Container</th>
-            <th>Size (units)</th>
-            <th>Qty</th>
-          </tr>
-        </thead>
-        <tbody>
-          ${containerRows}
-        </tbody>
+        <thead><tr><th>Container</th><th>Size (units)</th><th>Qty</th></tr></thead>
+        <tbody>${containerRows}</tbody>
       </table>
     </section>
-
     <section>
       <h2>Baseplates to Print</h2>
       <table>
-        <thead>
-          <tr>
-            <th>Baseplate Size (units)</th>
-            <th>Qty</th>
-          </tr>
-        </thead>
-        <tbody>
-          ${baseplateRows}
-        </tbody>
+        <thead><tr><th>Baseplate Size (units)</th><th>Qty</th></tr></thead>
+        <tbody>${baseplateRows}</tbody>
       </table>
     </section>
-
-    <p class="totals">
-      Totals: ${containerTotal} containers, ${printSummary.baseplates.totalTiles} baseplates
-    </p>
+    <p class="totals">Totals: ${containerTotal} containers, ${printSummary.baseplates.totalTiles} baseplates</p>
   </body>
 </html>`;
     printWindow.document.open();
@@ -211,136 +199,321 @@ export default function HomePage() {
   };
 
   return (
-    <main className="min-h-screen bg-gradient-to-b from-slate-50 via-white to-sky-50/40 p-4 sm:p-6">
-      <div className="mx-auto mb-4 flex max-w-7xl items-end justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-semibold tracking-tight text-slate-900">Planfinity</h1>
-          <p className="mt-1 text-sm text-slate-600">Design Gridfinity layouts faster, with live fit feedback.</p>
-        </div>
-      </div>
+    <div className="flex h-screen flex-col overflow-hidden" style={{ height: "100vh" }}>
+      <Topbar onNewLayout={handleNewLayout} onLoad={handleLoad} onSave={handleSave} />
 
-      <div className="mx-auto grid max-w-7xl gap-4 lg:grid-cols-[320px_1fr]">
-        <div className="space-y-4">
+      <div
+        className="grid flex-1 min-h-0"
+        style={{
+          gridTemplateColumns: "216px 1fr 196px",
+        }}
+      >
+        {/* Left panel */}
+        <aside
+          className="flex flex-col overflow-y-auto border-r p-3"
+          style={{
+            width: "216px",
+            backgroundColor: "var(--surface)",
+            borderColor: "var(--border)",
+          }}
+        >
           <DrawerForm initialValue={drawerInput} onApply={handleApplyDrawerInput} />
 
-          <section className="rounded-2xl border border-slate-200/80 bg-white/90 p-4 shadow-sm shadow-slate-200/60 backdrop-blur">
-            <h2 className="text-lg font-semibold text-slate-900">Computed Grid</h2>
-            <p className="mt-2 inline-flex rounded-full bg-slate-100 px-3 py-1 text-sm font-medium text-slate-700">
-              {drawerUnits.widthUnits} x {drawerUnits.depthUnits} units
-            </p>
-            <p className="mt-2 text-sm text-slate-700">Placed Containers: {placements.length}</p>
-            <div className="mt-3">
-              <h3 className="text-sm font-semibold text-slate-900">Container Counts</h3>
-              <div className="mt-1 space-y-1 text-sm text-slate-700">
-                {printSummary.containerCounts.length === 0 ? (
-                  <p>No containers placed.</p>
-                ) : (
-                  printSummary.containerCounts.map((containerCount) => (
-                    <p key={containerCount.containerTypeId}>
-                      {containerCount.label} ({containerCount.widthUnits}x{containerCount.depthUnits}):{" "}
-                      {containerCount.count}
-                    </p>
-                  ))
-                )}
-              </div>
-            </div>
-
-            <div className="mt-3">
-              <h3 className="text-sm font-semibold text-slate-900">Baseplate Strategy</h3>
-              <div className="mt-2 flex flex-wrap gap-2">
-                <button
-                  type="button"
-                  onClick={() => setBaseplateStrategy("max-first")}
-                  className={`rounded-lg border px-2 py-1 text-xs font-medium ${
-                    baseplateStrategy === "max-first"
-                      ? "border-slate-900 bg-slate-900 text-white"
-                      : "border-slate-300 bg-white text-slate-700 hover:bg-slate-50"
-                  }`}
-                  aria-pressed={baseplateStrategy === "max-first"}
+          {drawerUnits.widthUnits > 0 && drawerUnits.depthUnits > 0 && (
+            <>
+              <section className="mt-4">
+                <p
+                  className="uppercase tracking-wider text-[10px]"
+                  style={{
+                    fontFamily: "var(--font-mono)",
+                    color: "var(--text-tertiary)",
+                    letterSpacing: "0.1em",
+                  }}
                 >
-                  Max-first
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setBaseplateStrategy("balanced")}
-                  className={`rounded-lg border px-2 py-1 text-xs font-medium ${
-                    baseplateStrategy === "balanced"
-                      ? "border-slate-900 bg-slate-900 text-white"
-                      : "border-slate-300 bg-white text-slate-700 hover:bg-slate-50"
-                  }`}
-                  aria-pressed={baseplateStrategy === "balanced"}
-                >
-                  Balanced
-                </button>
-              </div>
-            </div>
+                  Computed grid
+                </p>
+                <div className="mt-2 grid grid-cols-2 gap-2">
+                  <div
+                    className="rounded-md border p-2"
+                    style={{
+                      backgroundColor: "var(--bg)",
+                      borderColor: "var(--border)",
+                      borderRadius: "var(--radius-md)",
+                      padding: "9px 10px",
+                    }}
+                  >
+                    <div style={{ fontFamily: "var(--font-mono)", fontSize: "18px", color: "var(--text-primary)" }}>
+                      {drawerUnits.widthUnits}
+                    </div>
+                    <div
+                      style={{
+                        fontFamily: "var(--font-mono)",
+                        fontSize: "10px",
+                        color: "var(--text-tertiary)",
+                      }}
+                    >
+                      width
+                    </div>
+                  </div>
+                  <div
+                    className="rounded-md border p-2"
+                    style={{
+                      backgroundColor: "var(--bg)",
+                      borderColor: "var(--border)",
+                      borderRadius: "var(--radius-md)",
+                      padding: "9px 10px",
+                    }}
+                  >
+                    <div style={{ fontFamily: "var(--font-mono)", fontSize: "18px", color: "var(--text-primary)" }}>
+                      {drawerUnits.depthUnits}
+                    </div>
+                    <div
+                      style={{
+                        fontFamily: "var(--font-mono)",
+                        fontSize: "10px",
+                        color: "var(--text-tertiary)",
+                      }}
+                    >
+                      depth
+                    </div>
+                  </div>
+                </div>
+              </section>
 
-            <div className="mt-3">
-              <h3 className="text-sm font-semibold text-slate-900">
-                Baseplates (&le;{printSummary.baseplates.maxTileUnits}x
-                {printSummary.baseplates.maxTileUnits})
-              </h3>
-              <p className="mt-1 text-sm text-slate-700">Total tiles: {printSummary.baseplates.totalTiles}</p>
-              <div className="mt-1 space-y-1 text-sm text-slate-700">
-                {printSummary.baseplates.sizeCounts.map((sizeCount) => (
-                  <p key={`${sizeCount.widthUnits}x${sizeCount.depthUnits}`}>
-                    {sizeCount.widthUnits}x{sizeCount.depthUnits}: {sizeCount.count}
+              <section className="mt-4">
+                <p
+                  className="uppercase tracking-wider text-[10px]"
+                  style={{
+                    fontFamily: "var(--font-mono)",
+                    color: "var(--text-tertiary)",
+                    letterSpacing: "0.1em",
+                  }}
+                >
+                  Container counts
+                </p>
+                <div
+                  className="mt-1.5 space-y-0.5 text-[12px] leading-[1.9]"
+                  style={{ fontFamily: "var(--font-sans)", color: "var(--text-secondary)" }}
+                >
+                  {printSummary.containerCounts.length === 0 ? (
+                    <p>No containers placed.</p>
+                  ) : (
+                    printSummary.containerCounts.map((cc) => (
+                      <p key={cc.containerTypeId}>
+                        <span style={{ fontFamily: "var(--font-mono)", fontWeight: 500, color: "var(--text-primary)" }}>
+                          {cc.count}×
+                        </span>{" "}
+                        {cc.label}
+                      </p>
+                    ))
+                  )}
+                </div>
+              </section>
+
+              <section className="mt-4">
+                <p
+                  className="uppercase tracking-wider text-[10px]"
+                  style={{
+                    fontFamily: "var(--font-mono)",
+                    color: "var(--text-tertiary)",
+                    letterSpacing: "0.1em",
+                  }}
+                >
+                  Baseplate strategy
+                </p>
+                <div
+                  className="mt-1.5 flex overflow-hidden rounded-[var(--radius-sm)] border"
+                  style={{ borderColor: "var(--border)" }}
+                >
+                  <button
+                    type="button"
+                    onClick={() => setBaseplateStrategy("max-first")}
+                    className="flex-1 py-1.5 text-[11px] font-medium transition-colors hover:bg-[var(--surface-2)]"
+                    style={{
+                      fontFamily: "var(--font-mono)",
+                      backgroundColor: baseplateStrategy === "max-first" ? "var(--text-primary)" : "transparent",
+                      color: baseplateStrategy === "max-first" ? "var(--surface)" : "var(--text-secondary)",
+                    }}
+                    aria-pressed={baseplateStrategy === "max-first"}
+                  >
+                    Max-first
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setBaseplateStrategy("balanced")}
+                    className="flex-1 py-1.5 text-[11px] font-medium transition-colors hover:bg-[var(--surface-2)]"
+                    style={{
+                      fontFamily: "var(--font-mono)",
+                      backgroundColor: baseplateStrategy === "balanced" ? "var(--text-primary)" : "transparent",
+                      color: baseplateStrategy === "balanced" ? "var(--surface)" : "var(--text-secondary)",
+                    }}
+                    aria-pressed={baseplateStrategy === "balanced"}
+                  >
+                    Balanced
+                  </button>
+                </div>
+              </section>
+
+              <section className="mt-4">
+                <p
+                  className="uppercase tracking-wider text-[10px]"
+                  style={{
+                    fontFamily: "var(--font-mono)",
+                    color: "var(--text-tertiary)",
+                    letterSpacing: "0.1em",
+                  }}
+                >
+                  Baseplates ({baseplateStrategy === "max-first" ? "Max-first" : "Balanced"}) (≤
+                  {printSummary.baseplates.maxTileUnits}×{printSummary.baseplates.maxTileUnits})
+                </p>
+                {baseplatesSameForBothStrategies && (
+                  <p
+                    className="mt-1 text-[11px]"
+                    style={{ fontFamily: "var(--font-sans)", color: "var(--text-tertiary)" }}
+                  >
+                    Same result for both strategies for this grid size.
                   </p>
-                ))}
+                )}
+                <div
+                  className="mt-1.5 space-y-0.5 text-[12px] leading-[1.9]"
+                  style={{ fontFamily: "var(--font-sans)", color: "var(--text-secondary)" }}
+                >
+                  {printSummary.baseplates.sizeCounts.map((sc) => (
+                    <p key={`${sc.widthUnits}x${sc.depthUnits}`}>
+                      <span style={{ fontFamily: "var(--font-mono)", fontWeight: 500, color: "var(--text-primary)" }}>
+                        {sc.count}×
+                      </span>{" "}
+                      {sc.widthUnits}×{sc.depthUnits}
+                    </p>
+                  ))}
+                </div>
+                <div
+                  className="mt-2 rounded-md border p-2"
+                  style={{
+                    backgroundColor: "var(--bg)",
+                    borderColor: "var(--border)",
+                    borderRadius: "var(--radius-md)",
+                    padding: "9px 10px",
+                  }}
+                >
+                  <div style={{ fontFamily: "var(--font-mono)", fontSize: "18px", color: "var(--text-primary)" }}>
+                    {printSummary.baseplates.totalTiles}
+                  </div>
+                  <div style={{ fontFamily: "var(--font-mono)", fontSize: "10px", color: "var(--text-tertiary)" }}>
+                    total tiles
+                  </div>
+                </div>
+              </section>
+
+              <div className="mt-4">
+                <button
+                  type="button"
+                  onClick={handlePrintSummary}
+                  className="flex w-full items-center justify-center gap-2 rounded-[var(--radius-sm)] border py-2 text-[12px] font-medium"
+                  style={{
+                    backgroundColor: "var(--surface-2)",
+                    borderColor: "var(--border)",
+                    color: "var(--text-primary)",
+                  }}
+                >
+                  <ListLinesIcon />
+                  Print list
+                </button>
               </div>
-            </div>
-            <div className="mt-4">
-              <button
-                type="button"
-                onClick={handlePrintSummary}
-                className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 shadow-sm hover:bg-slate-50"
-              >
-                Print List
-              </button>
-            </div>
-          </section>
 
-        </div>
+              <div className="mt-6">
+                <div className="flex items-center justify-between">
+                  <span
+                    className="uppercase tracking-wider text-[10px]"
+                    style={{
+                      fontFamily: "var(--font-mono)",
+                      color: "var(--text-tertiary)",
+                      letterSpacing: "0.1em",
+                    }}
+                  >
+                    Coverage
+                  </span>
+                  <span
+                    className="text-[13px] font-medium"
+                    style={{
+                      fontFamily: "var(--font-mono)",
+                      color: "var(--text-primary)",
+                    }}
+                  >
+                    {coveragePercent}%
+                  </span>
+                </div>
+                <div
+                  className="mt-1 h-1 overflow-hidden rounded-[var(--radius-sm)] border"
+                  style={{
+                    backgroundColor: "var(--surface-2)",
+                    borderColor: "var(--border)",
+                    height: "4px",
+                  }}
+                >
+                  <div
+                    className="h-full rounded-[var(--radius-sm)]"
+                    style={{
+                      width: `${Math.min(100, coveragePercent)}%`,
+                      backgroundColor: "var(--accent-teal)",
+                    }}
+                  />
+                </div>
+              </div>
+            </>
+          )}
+        </aside>
 
-        <div className="grid items-start gap-4 lg:grid-cols-[minmax(0,1fr)_auto]">
+        {/* Center — grid area */}
+        <main
+          className="flex min-h-0 flex-1 flex-col p-4"
+          style={{ backgroundColor: "var(--bg)" }}
+        >
           <GridPlanner
             drawerInput={drawerInput}
             drawerUnits={drawerUnits}
             containerTypes={DEFAULT_CONTAINER_TYPES}
             selectedContainerTypeId={selectedContainerTypeId}
             placements={placements}
+            coveragePercent={coveragePercent}
             onAddPlacement={(placement) => setPlacements((current) => [...current, placement])}
             onRemovePlacement={(placementId) =>
-              setPlacements((current) => current.filter((placement) => placement.id !== placementId))
+              setPlacements((current) => current.filter((p) => p.id !== placementId))
             }
             onClearLayout={handleClearLayout}
           />
-          <aside
-            className={`space-y-2 lg:sticky lg:top-6 ${
-              isPaletteCollapsed ? "w-14 self-start" : "w-full lg:w-[300px]"
-            }`}
-          >
-            <button
-              type="button"
-              onClick={() => setIsPaletteCollapsed((current) => !current)}
-              className={`w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 shadow-sm hover:bg-slate-50 ${
-                isPaletteCollapsed ? "h-12 px-0 text-xs" : ""
-              }`}
-              title={isPaletteCollapsed ? "Show container palette" : "Hide container palette"}
-            >
-              {isPaletteCollapsed ? "Show" : "Hide Palette"}
-            </button>
-            {!isPaletteCollapsed ? (
-              <ContainerPalette
-                containerTypes={DEFAULT_CONTAINER_TYPES}
-                gridPitchMm={drawerInput.gridPitchMm}
-                selectedContainerTypeId={selectedContainerTypeId}
-                onSelect={setSelectedContainerTypeId}
-              />
-            ) : null}
-          </aside>
-        </div>
+        </main>
+
+        {/* Right panel */}
+        <aside
+          className="flex flex-col overflow-y-auto border-l p-3"
+          style={{
+            width: "196px",
+            backgroundColor: "var(--surface)",
+            borderColor: "var(--border)",
+          }}
+        >
+          <ContainerPalette
+            containerTypes={DEFAULT_CONTAINER_TYPES}
+            gridPitchMm={drawerInput.gridPitchMm}
+            selectedContainerTypeId={selectedContainerTypeId}
+            onSelect={setSelectedContainerTypeId}
+          />
+        </aside>
       </div>
-    </main>
+    </div>
+  );
+}
+
+function ListLinesIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+      <line x1="8" y1="6" x2="21" y2="6" />
+      <line x1="8" y1="12" x2="21" y2="12" />
+      <line x1="8" y1="18" x2="21" y2="18" />
+      <line x1="3" y1="6" x2="3.01" y2="6" />
+      <line x1="3" y1="12" x2="3.01" y2="12" />
+      <line x1="3" y1="18" x2="3.01" y2="18" />
+    </svg>
   );
 }

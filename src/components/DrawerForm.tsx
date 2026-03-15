@@ -8,6 +8,49 @@ type DrawerFormProps = {
   onApply: (value: DrawerInput) => void;
 };
 
+function InputWithSuffix({
+  value,
+  onChange,
+  suffix,
+  ariaLabel,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  suffix: string;
+  ariaLabel: string;
+}) {
+  return (
+    <div className="flex overflow-hidden rounded-[var(--radius-sm)] border" style={{ borderColor: "var(--border)" }}>
+      <input
+        type="number"
+        min={1}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        aria-label={ariaLabel}
+        className="w-0 min-w-0 flex-1 bg-transparent px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-[var(--accent-blue)]"
+        style={{
+          fontFamily: "var(--font-mono)",
+          fontSize: "12px",
+          color: "var(--text-primary)",
+          backgroundColor: "var(--bg)",
+          border: "none",
+          borderRadius: "var(--radius-sm)",
+        }}
+      />
+      <span
+        className="flex shrink-0 items-center px-2 py-1.5 text-[12px]"
+        style={{
+          fontFamily: "var(--font-mono)",
+          backgroundColor: "var(--surface-2)",
+          color: "var(--text-tertiary)",
+        }}
+      >
+        {suffix}
+      </span>
+    </div>
+  );
+}
+
 export function DrawerForm({ initialValue, onApply }: DrawerFormProps) {
   const [widthMm, setWidthMm] = useState(String(initialValue.widthMm));
   const [depthMm, setDepthMm] = useState(String(initialValue.depthMm));
@@ -36,53 +79,46 @@ export function DrawerForm({ initialValue, onApply }: DrawerFormProps) {
   };
 
   return (
-    <section className="max-w-xl rounded-2xl border border-slate-200/80 bg-white/90 p-4 shadow-sm shadow-slate-200/60 backdrop-blur">
-      <h2 className="text-lg font-semibold text-slate-900">Drawer Input</h2>
-      <div className="mt-3 grid gap-y-3 sm:grid-cols-3 sm:gap-x-4">
-        <label className="text-sm text-slate-700">
-          <span className="mb-1 flex h-10 items-end font-medium leading-tight">Width (mm)</span>
-          <input
-            className="h-10 w-full rounded-lg border border-slate-300 bg-white px-3 py-1 text-slate-900 shadow-sm focus:border-sky-500 focus:outline-none focus:ring-2 focus:ring-sky-100"
-            type="number"
-            min={1}
-            value={widthMm}
-            onChange={(event) => setWidthMm(event.target.value)}
-          />
+    <section>
+      <p
+        className="uppercase tracking-wider text-[10px]"
+        style={{
+          fontFamily: "var(--font-mono)",
+          color: "var(--text-tertiary)",
+          letterSpacing: "0.1em",
+        }}
+      >
+        Drawer input
+      </p>
+      <div className="mt-2 grid grid-cols-2 gap-2">
+        <label className="flex flex-col gap-1">
+          <span className="sr-only">Width (mm)</span>
+          <InputWithSuffix value={widthMm} onChange={setWidthMm} suffix="W" ariaLabel="Width mm" />
         </label>
-
-        <label className="text-sm text-slate-700">
-          <span className="mb-1 flex h-10 items-end font-medium leading-tight">Depth (mm)</span>
-          <input
-            className="h-10 w-full rounded-lg border border-slate-300 bg-white px-3 py-1 text-slate-900 shadow-sm focus:border-sky-500 focus:outline-none focus:ring-2 focus:ring-sky-100"
-            type="number"
-            min={1}
-            value={depthMm}
-            onChange={(event) => setDepthMm(event.target.value)}
-          />
-        </label>
-
-        <label className="text-sm text-slate-700">
-          <span className="mb-1 flex h-10 items-end font-medium leading-tight">Grid Pitch (mm)</span>
-          <input
-            className="h-10 w-full rounded-lg border border-slate-300 bg-white px-3 py-1 text-slate-900 shadow-sm focus:border-sky-500 focus:outline-none focus:ring-2 focus:ring-sky-100"
-            type="number"
-            min={1}
-            value={gridPitchMm}
-            onChange={(event) => setGridPitchMm(event.target.value)}
-          />
+        <label className="flex flex-col gap-1">
+          <span className="sr-only">Depth (mm)</span>
+          <InputWithSuffix value={depthMm} onChange={setDepthMm} suffix="D" ariaLabel="Depth mm" />
         </label>
       </div>
-
-      <div className="mt-3 flex items-center gap-3">
-        <button
-          type="button"
-          className="rounded-lg bg-sky-600 px-3 py-1.5 text-sm font-medium text-white shadow-sm hover:bg-sky-700"
-          onClick={applyForm}
-        >
-          Apply
-        </button>
-        {error ? <p className="text-sm text-rose-600">{error}</p> : null}
+      <div className="mt-2">
+        <label className="flex flex-col gap-1">
+          <span className="sr-only">Grid pitch (mm)</span>
+          <InputWithSuffix value={gridPitchMm} onChange={setGridPitchMm} suffix="mm" ariaLabel="Grid pitch mm" />
+        </label>
       </div>
+      <button
+        type="button"
+        onClick={applyForm}
+        className="mt-3 w-full rounded-[var(--radius-sm)] py-2 text-[13px] font-medium text-white transition-opacity hover:opacity-90"
+        style={{ backgroundColor: "var(--text-primary)" }}
+      >
+        Apply
+      </button>
+      {error ? (
+        <p className="mt-2 text-[12px]" style={{ color: "var(--text-secondary)" }}>
+          {error}
+        </p>
+      ) : null}
     </section>
   );
 }
