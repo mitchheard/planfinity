@@ -59,6 +59,13 @@ export default function HomePage() {
     setPlacements([]);
   };
 
+  const handleClearLayout = () => {
+    if (placements.length === 0) {
+      return;
+    }
+    setPlacements([]);
+  };
+
   const handlePrintSummary = () => {
     const printWindow = window.open("", "_blank");
     if (!printWindow) {
@@ -306,6 +313,7 @@ export default function HomePage() {
             onRemovePlacement={(placementId) =>
               setPlacements((current) => current.filter((placement) => placement.id !== placementId))
             }
+            onClearLayout={handleClearLayout}
           />
           <aside
             className={`space-y-2 lg:sticky lg:top-6 ${

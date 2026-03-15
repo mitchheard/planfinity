@@ -4,6 +4,9 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   title: "Planfinity",
+  icons: {
+    icon: "/favicon.png",
+  },
   description:
     "Design Gridfinity drawer layouts fast, with live fit feedback and print-ready baseplate + bin suggestions.",
   metadataBase: new URL("https://planfinity.app"),
