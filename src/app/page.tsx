@@ -1,10 +1,11 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import { ContainerPalette } from "@/components/ContainerPalette";
 import { DrawerForm } from "@/components/DrawerForm";
 import { GridPlanner } from "@/components/GridPlanner";
 import { Topbar } from "@/components/Topbar";
+import { downloadLayoutFile, parseLayoutFile } from "@/lib/layoutFile";
 import { deriveDrawerUnits } from "@/lib/planner";
 import { buildPrintSummary } from "@/lib/printSummary";
 import type { BaseplateStrategy, ContainerType, DrawerInput, Placement } from "@/types/planfinity";
@@ -56,6 +57,9 @@ export default function HomePage() {
   const [selectedContainerTypeId, setSelectedContainerTypeId] = useState<string>(DEFAULT_CONTAINER_TYPES[0].id);
   const [placements, setPlacements] = useState<Placement[]>([]);
   const [baseplateStrategy, setBaseplateStrategy] = useState<BaseplateStrategy>("max-first");
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [loadWarning, setLoadWarning] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const drawerUnits = useMemo(() => deriveDrawerUnits(drawerInput), [drawerInput]);
   const printSummary = useMemo(
@@ -92,18 +96,59 @@ export default function HomePage() {
     setPlacements([]);
   };
 
-  const handleNewLayout = () => {
+  const handleNewLayout = useCallback(() => {
     setDrawerInput(DEFAULT_DRAWER_INPUT);
     setPlacements([]);
-  };
+    setLoadError(null);
+    setLoadWarning(null);
+  }, []);
 
-  const handleLoad = () => {
-    // TODO: wire to load from storage/file
-  };
+  const handleSave = useCallback(() => {
+    setLoadError(null);
+    setLoadWarning(null);
+    downloadLayoutFile(drawerInput, placements);
+  }, [drawerInput, placements]);
 
-  const handleSave = () => {
-    // TODO: wire to save to storage/file
-  };
+  const handleLoad = useCallback(() => {
+    setLoadError(null);
+    setLoadWarning(null);
+    fileInputRef.current?.click();
+  }, []);
+
+  const handleFileChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      const file = e.target.files?.[0];
+      e.target.value = "";
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = () => {
+        const text = typeof reader.result === "string" ? reader.result : "";
+        const result = parseLayoutFile(text, DEFAULT_CONTAINER_TYPES);
+        if (!result.ok) {
+          setLoadError(result.error);
+          setLoadWarning(null);
+          return;
+        }
+        setLoadError(null);
+        setDrawerInput(result.drawerInput);
+        setPlacements(result.placements);
+        if (result.skippedCount > 0) {
+          setLoadWarning(
+            `${result.skippedCount} container(s) were out of bounds and skipped.`,
+          );
+        } else {
+          setLoadWarning(null);
+        }
+      };
+      reader.onerror = () => {
+        setLoadError("Invalid layout file");
+        setLoadWarning(null);
+      };
+      reader.readAsText(file, "utf-8");
+    },
+    [],
+  );
 
   const handleClearLayout = () => {
     if (placements.length === 0) return;
@@ -200,7 +245,28 @@ export default function HomePage() {
 
   return (
     <div className="flex h-screen flex-col overflow-hidden" style={{ height: "100vh" }}>
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept=".json"
+        className="hidden"
+        aria-hidden
+        onChange={handleFileChange}
+      />
       <Topbar onNewLayout={handleNewLayout} onLoad={handleLoad} onSave={handleSave} />
+      {(loadError || loadWarning) && (
+        <div
+          role="alert"
+          className="px-4 py-2 text-[13px]"
+          style={{
+            backgroundColor: loadError ? "var(--surface-2)" : "var(--bg)",
+            borderBottom: "1px solid var(--border)",
+            color: loadError ? "var(--text-primary)" : "var(--text-secondary)",
+          }}
+        >
+          {loadError ?? loadWarning}
+        </div>
+      )}
 
       <div
         className="grid flex-1 min-h-0"
