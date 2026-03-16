@@ -8,16 +8,20 @@ The format is based on Keep a Changelog, and this project follows Semantic Versi
 
 ### Added
 
+- **Load/Save layout files**: Load a layout from a JSON file (Load in topbar or hamburger on mobile); save the current layout to a new file (Save layout). Supports full load → edit (remove, rotate, add) → save workflow.
+- **Mobile-responsive layout** (≤768px): Single-column stack with condensed topbar (hamburger for New/Load, Save primary), compact drawer form, full-width grid with aspect ratio, and tabbed bottom panel (Containers | Stats | Baseplates). Touch: tap to place, tap container to rotate, long-press to remove.
 - Print List button in the computed grid summary that opens a printer-friendly bill of materials for containers and baseplates.
 - Roadmap entries for prompt-based AI layout suggestions that recommend container mixes from natural language storage goals.
 
 ### Changed
 
-- None yet.
+- **Apply drawer dimensions**: Changing width, depth, or grid pitch and clicking Apply now keeps placements that still fit in the new grid; only out-of-bounds placements are removed (previously all placements were cleared).
+- **Removal after load**: Placements loaded from a file (which have no stored id) can be removed; removal uses a stable key so it works on both desktop and mobile.
 
 ### Fixed
 
-- None yet.
+- **Grid missing after load**: Duplicate SVG pattern `id="grid-pattern"` when both mobile and desktop GridPlanner instances were in the DOM caused one grid to render without lines; each instance now uses a unique pattern id (`useId()`).
+- **Spacer dimension labels cut off**: When the extra width/depth strip was narrow, "+Nmm" labels were clipped; labels now use a smaller font and are nudged inward on narrow strips, and the SVG uses `overflow="visible"`.
 
 ## [0.1.1] - 2026-02-24
 

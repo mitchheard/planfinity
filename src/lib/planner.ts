@@ -46,6 +46,24 @@ export function isPlacementWithinBounds(
   );
 }
 
+/**
+ * Returns true if the given placement (with rotation) fits entirely within the grid.
+ * Use when resizing the drawer to keep only in-bounds placements.
+ */
+export function isPlacementFullyWithinBounds(
+  drawerUnits: DrawerUnits,
+  placement: Placement,
+  containerType: ContainerType,
+): boolean {
+  const { width, height } = getPlacementDimensions(placement, containerType);
+  return (
+    placement.x >= 0 &&
+    placement.y >= 0 &&
+    placement.x + width <= drawerUnits.widthUnits &&
+    placement.y + height <= drawerUnits.depthUnits
+  );
+}
+
 export function doRectanglesOverlap(a: Rectangle, b: Rectangle): boolean {
   return !(a.x + a.width <= b.x || b.x + b.width <= a.x || a.y + a.height <= b.y || b.y + b.height <= a.y);
 }

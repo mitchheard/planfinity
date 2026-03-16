@@ -7,7 +7,7 @@ import { GridPlanner } from "@/components/GridPlanner";
 import { Topbar } from "@/components/Topbar";
 import { useIsMobile } from "@/hooks/useMediaQuery";
 import { downloadLayoutFile, parseLayoutFile } from "@/lib/layoutFile";
-import { deriveDrawerUnits } from "@/lib/planner";
+import { deriveDrawerUnits, isPlacementFullyWithinBounds } from "@/lib/planner";
 import { buildPrintSummary } from "@/lib/printSummary";
 import type { BaseplateStrategy, ContainerType, DrawerInput, Placement } from "@/types/planfinity";
 
@@ -107,8 +107,15 @@ export default function HomePage() {
   }, [drawerUnits, placements]);
 
   const handleApplyDrawerInput = (nextInput: DrawerInput) => {
+    const nextUnits = deriveDrawerUnits(nextInput);
     setDrawerInput(nextInput);
-    setPlacements([]);
+    setPlacements((prev) => {
+      if (nextUnits.widthUnits <= 0 || nextUnits.depthUnits <= 0) return [];
+      return prev.filter((p) => {
+        const ct = containerTypeById.get(p.containerTypeId);
+        return ct ? isPlacementFullyWithinBounds(nextUnits, p, ct) : false;
+      });
+    });
   };
 
   const handleNewLayout = useCallback(() => {
@@ -304,7 +311,9 @@ export default function HomePage() {
             coveragePercent={coveragePercent}
             onAddPlacement={(placement) => setPlacements((current) => [...current, placement])}
             onRemovePlacement={(placementId) =>
-              setPlacements((current) => current.filter((p) => p.id !== placementId))
+              setPlacements((current) =>
+                current.filter((p) => (p.id ?? `${p.containerTypeId}-${p.x}-${p.y}`) !== placementId),
+              )
             }
             onClearLayout={handleClearLayout}
             touchMode={isMobile}
@@ -757,7 +766,9 @@ export default function HomePage() {
             coveragePercent={coveragePercent}
             onAddPlacement={(placement) => setPlacements((current) => [...current, placement])}
             onRemovePlacement={(placementId) =>
-              setPlacements((current) => current.filter((p) => p.id !== placementId))
+              setPlacements((current) =>
+                current.filter((p) => (p.id ?? `${p.containerTypeId}-${p.x}-${p.y}`) !== placementId),
+              )
             }
             onClearLayout={handleClearLayout}
           />

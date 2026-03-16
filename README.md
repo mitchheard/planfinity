@@ -12,11 +12,12 @@ This repository contains an MVP built with Next.js, React, Tailwind CSS, and Typ
 
 - Drawer inputs in mm (`width`, `depth`, `grid pitch`)
 - Derived drawer grid dimensions in units
-- Interactive placement of container footprints
+- **Load/Save layout files** — load a layout from JSON, edit (remove, rotate, add containers), then save to a new file
+- Interactive placement of container footprints (click/tap to place; rotate via R key, right-click, or tap on mobile; remove via click or long-press on mobile)
 - Collision and bounds validation
-- Placement removal
-- Container count summary
-- Baseplate breakdown constrained to `<= 5x5`
+- **Resize drawer** — when you change dimensions and Apply, placements that still fit are kept; only out-of-bounds ones are removed
+- Container count summary and baseplate breakdown constrained to `<= 5x5`
+- **Mobile-responsive layout** (≤768px) — single column, tabbed bottom panel (Containers, Stats, Baseplates), touch-friendly
 - Unit tests for core planner logic
 
 ## Tech Stack

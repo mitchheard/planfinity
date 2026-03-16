@@ -78,6 +78,13 @@ The MVP is fully client-side, with one active layout persisted locally in the br
 2. System loads saved layout from `localStorage`.
 3. If saved data is missing/invalid, app falls back to default empty state.
 
+### Flow 6: Load and Save Layout Files
+
+1. User clicks **Load** and selects a Planfinity layout JSON file (version 1 schema).
+2. System parses the file, validates drawer and container data, and applies the layout (drawer dimensions + placements). Out-of-bounds containers are skipped and reported.
+3. User can then edit the layout (remove, rotate, add containers) and/or change drawer dimensions (Apply keeps placements that fit).
+4. User clicks **Save layout** to download the current layout as a new JSON file.
+
 ## Functional Requirements
 
 - Inputs must accept positive numeric values in millimeters.

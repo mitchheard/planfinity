@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import type { ContainerType, DrawerInput, DrawerUnits, Placement } from "@/types/planfinity";
 import { canPlaceContainer, doesPlacementCollide, isPlacementWithinBounds } from "@/lib/planner";
 
@@ -54,6 +54,9 @@ export function GridPlanner({
   const [isAltHeld, setIsAltHeld] = useState(false);
   const [isClearConfirming, setIsClearConfirming] = useState(false);
   const [hoverPlacementId, setHoverPlacementId] = useState<string | null>(null);
+  const longPressTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const longPressHandledRef = useRef(false);
+  const gridPatternId = useId();
   const containerTypeById = new Map(containerTypes.map((c) => [c.id, c]));
   const selectedContainerType = containerTypeById.get(selectedContainerTypeId) ?? containerTypes[0];
   const shouldPreviewRotated = isRotateHeld || isControlHeld || isAltHeld;
@@ -199,13 +202,40 @@ export function GridPlanner({
     lineHeight: "18px",
   };
 
+  const getPlacementId = (placement: Placement) =>
+    placement.id ?? `${placement.containerTypeId}-${placement.x}-${placement.y}`;
+
+  const LONG_PRESS_MS = 500;
+
   const handlePlacementClick = (placement: Placement) => {
-    const pid = placement.id ?? `${placement.containerTypeId}-${placement.x}-${placement.y}`;
+    const pid = getPlacementId(placement);
     if (touchMode && onRotatePlacement) {
       onRotatePlacement(pid);
-    } else if (placement.id) {
-      onRemovePlacement(placement.id);
+    } else {
+      onRemovePlacement(pid);
     }
+  };
+
+  const handlePlacementTouchStart = (placement: Placement) => {
+    if (!touchMode || !onRotatePlacement) return;
+    longPressHandledRef.current = false;
+    longPressTimerRef.current = setTimeout(() => {
+      longPressHandledRef.current = true;
+      onRemovePlacement(getPlacementId(placement));
+      longPressTimerRef.current = null;
+    }, LONG_PRESS_MS);
+  };
+
+  const handlePlacementTouchEnd = (placement: Placement) => {
+    if (!touchMode || !onRotatePlacement) return;
+    if (longPressTimerRef.current) {
+      clearTimeout(longPressTimerRef.current);
+      longPressTimerRef.current = null;
+    }
+    if (!longPressHandledRef.current) {
+      onRotatePlacement(getPlacementId(placement));
+    }
+    longPressHandledRef.current = false;
   };
 
   const totalWidthPx = gridWidthPx + extraWidthPx;
@@ -232,7 +262,7 @@ export function GridPlanner({
           style={{ color: "var(--tip-text)" }}
         >
           {touchMode ? (
-            <>Tap to place · Tap placed container to rotate</>
+            <>Tap to place · Tap container to rotate · Long-press to remove</>
           ) : (
             <>
               Click to place
@@ -274,13 +304,14 @@ export function GridPlanner({
           >
             <svg
               viewBox={`0 0 ${totalWidthPx} ${totalHeightPx}`}
+              overflow="visible"
               {...(fillContainer
                 ? { width: "100%", height: "100%", preserveAspectRatio: "xMidYMid meet", className: "absolute inset-0 block" }
                 : { width: totalWidthPx, height: totalHeightPx, className: "absolute left-0 top-0 block" })}
             >
               <defs>
                 <pattern
-                  id="grid-pattern"
+                  id={gridPatternId}
                   width={CELL_SIZE_PX}
                   height={CELL_SIZE_PX}
                   patternUnits="userSpaceOnUse"
@@ -295,7 +326,7 @@ export function GridPlanner({
               </defs>
               {/* Grid area background + gridlines */}
               <rect x={0} y={0} width={gridWidthPx} height={gridDepthPx} fill="var(--grid-bg)" />
-              <rect x={0} y={0} width={gridWidthPx} height={gridDepthPx} fill="url(#grid-pattern)" />
+              <rect x={0} y={0} width={gridWidthPx} height={gridDepthPx} fill={`url(#${gridPatternId})`} />
               <rect
                 x={0}
                 y={0}
@@ -379,58 +410,66 @@ export function GridPlanner({
                 </g>
               )}
               {/* Overflow dimension labels and dashed boundaries */}
-              {extraWidthMm > 0 && (
-                <>
-                  <line
-                    x1={gridWidthPx}
-                    y1={0}
-                    x2={gridWidthPx}
-                    y2={gridDepthPx}
-                    stroke="var(--gridline)"
-                    strokeWidth={0.5}
-                    strokeDasharray="2 2"
-                  />
-                  <text
-                    x={gridWidthPx + extraWidthPx / 2}
-                    y={gridDepthPx / 2}
-                    textAnchor="middle"
-                    dominantBaseline="middle"
-                    style={{
-                      fontFamily: "var(--font-mono)",
-                      fontSize: "9px",
-                      fill: "var(--text-tertiary)",
-                    }}
-                  >
-                    +{extraWidthMm}mm
-                  </text>
-                </>
-              )}
-              {extraDepthMm > 0 && (
-                <>
-                  <line
-                    x1={0}
-                    y1={gridDepthPx}
-                    x2={gridWidthPx}
-                    y2={gridDepthPx}
-                    stroke="var(--gridline)"
-                    strokeWidth={0.5}
-                    strokeDasharray="2 2"
-                  />
-                  <text
-                    x={gridWidthPx / 2}
-                    y={gridDepthPx + extraDepthPx / 2}
-                    textAnchor="middle"
-                    dominantBaseline="middle"
-                    style={{
-                      fontFamily: "var(--font-mono)",
-                      fontSize: "9px",
-                      fill: "var(--text-tertiary)",
-                    }}
-                  >
-                    +{extraDepthMm}mm
-                  </text>
-                </>
-              )}
+              {extraWidthMm > 0 && (() => {
+                const narrow = extraWidthPx < 28;
+                const labelX = narrow ? gridWidthPx + extraWidthPx * 0.35 : gridWidthPx + extraWidthPx / 2;
+                return (
+                  <>
+                    <line
+                      x1={gridWidthPx}
+                      y1={0}
+                      x2={gridWidthPx}
+                      y2={gridDepthPx}
+                      stroke="var(--gridline)"
+                      strokeWidth={0.5}
+                      strokeDasharray="2 2"
+                    />
+                    <text
+                      x={labelX}
+                      y={gridDepthPx / 2}
+                      textAnchor="middle"
+                      dominantBaseline="middle"
+                      style={{
+                        fontFamily: "var(--font-mono)",
+                        fontSize: narrow ? "7px" : "9px",
+                        fill: "var(--text-tertiary)",
+                      }}
+                    >
+                      +{extraWidthMm}mm
+                    </text>
+                  </>
+                );
+              })()}
+              {extraDepthMm > 0 && (() => {
+                const narrow = extraDepthPx < 28;
+                const labelY = narrow ? gridDepthPx + extraDepthPx * 0.35 : gridDepthPx + extraDepthPx / 2;
+                return (
+                  <>
+                    <line
+                      x1={0}
+                      y1={gridDepthPx}
+                      x2={gridWidthPx}
+                      y2={gridDepthPx}
+                      stroke="var(--gridline)"
+                      strokeWidth={0.5}
+                      strokeDasharray="2 2"
+                    />
+                    <text
+                      x={gridWidthPx / 2}
+                      y={labelY}
+                      textAnchor="middle"
+                      dominantBaseline="middle"
+                      style={{
+                        fontFamily: "var(--font-mono)",
+                        fontSize: narrow ? "7px" : "9px",
+                        fill: "var(--text-tertiary)",
+                      }}
+                    >
+                      +{extraDepthMm}mm
+                    </text>
+                  </>
+                );
+              })()}
             </svg>
 
             {/* Invisible cell grid for click targets — use 1fr grid when fillContainer so it scales with SVG */}
@@ -503,10 +542,23 @@ export function GridPlanner({
                           height: h * CELL_SIZE_PX,
                         }
                   }
-                  onClick={() => handlePlacementClick(placement)}
+                  onClick={(e) => {
+                    if (touchMode) {
+                      e.preventDefault();
+                      e.stopPropagation();
+                    } else {
+                      handlePlacementClick(placement);
+                    }
+                  }}
+                  onTouchStart={() => handlePlacementTouchStart(placement)}
+                  onTouchEnd={() => handlePlacementTouchEnd(placement)}
                   onMouseEnter={() => setHoverPlacementId(pid)}
                   onMouseLeave={() => setHoverPlacementId(null)}
-                  aria-label={touchMode && onRotatePlacement ? `Rotate ${ct.label} at ${placement.x},${placement.y}` : `Remove ${ct.label} at ${placement.x},${placement.y}`}
+                  aria-label={
+                    touchMode && onRotatePlacement
+                      ? `Rotate ${ct.label} (long-press to remove)`
+                      : `Remove ${ct.label} at ${placement.x},${placement.y}`
+                  }
                 />
               );
             })}
