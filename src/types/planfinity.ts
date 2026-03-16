@@ -66,3 +66,11 @@ export type PrintSummary = {
   containerCounts: ContainerCountSummary[];
   baseplates: BaseplateSummary;
 };
+
+/** One past state for undo. History stack stores previous states only (current state is not in history). */
+export type HistoryEntry = {
+  drawerInput: DrawerInput;
+  placements: Placement[];
+  timestamp: number;
+  action: string;
+};

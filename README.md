@@ -77,5 +77,4 @@ npm run lint
 
 ## Roadmap
 
-For the high-level roadmap, see `ROADMAP.md`.
-For milestone-level detail and acceptance criteria, see `docs/roadmap.md`.
+High-level roadmap and milestone detail: `ROADMAP.md` and `docs/roadmap.md`. **Future development is tracked in Linear (Planfinity tickets AVIDX-24, AVIDX-42 through AVIDX-51+); Linear is the source of truth for specs and backlog.**

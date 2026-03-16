@@ -7,6 +7,11 @@ type TopbarProps = {
   onNewLayout: () => void;
   onLoad: () => void;
   onSave: () => void;
+  onFillRandomly: () => void;
+  isGridFull: boolean;
+  onUndo: () => void;
+  canUndo: boolean;
+  lastUndoAction: string | null;
 };
 
 function LogoMark() {
@@ -45,9 +50,19 @@ function HamburgerIcon({ open }: { open: boolean }) {
   );
 }
 
-export function Topbar({ onNewLayout, onLoad, onSave }: TopbarProps) {
+function UndoIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+      <path d="M3 10h10a5 5 0 0 1 5 5v2" />
+      <path d="M3 10l4-4M3 10l4 4" />
+    </svg>
+  );
+}
+
+export function Topbar({ onNewLayout, onLoad, onSave, onFillRandomly, isGridFull, onUndo, canUndo, lastUndoAction }: TopbarProps) {
   const isMobile = useIsMobile();
   const [menuOpen, setMenuOpen] = useState(false);
+  const undoTitle = lastUndoAction ? `Undo: ${lastUndoAction}` : "Undo";
 
   return (
     <header
@@ -66,11 +81,29 @@ export function Topbar({ onNewLayout, onLoad, onSave }: TopbarProps) {
         >
           Planfinity
         </span>
-        {/* Desktop: tagline */}
+        {/* Desktop: Undo then tagline */}
         <div
           className="hidden md:flex items-center gap-3 shrink-0"
           aria-hidden
         >
+          <div
+            className="h-5 w-px shrink-0"
+            style={{ backgroundColor: "var(--border)" }}
+          />
+          <button
+            type="button"
+            onClick={onUndo}
+            disabled={!canUndo}
+            title={undoTitle}
+            className="flex items-center gap-1.5 rounded px-2.5 py-1.5 text-[13px] font-medium transition-colors disabled:opacity-50 disabled:pointer-events-none hover:bg-[var(--surface-2)]"
+            style={{
+              color: "var(--text-secondary)",
+            }}
+            aria-label={undoTitle}
+          >
+            <UndoIcon />
+            Undo
+          </button>
           <div
             className="h-5 w-px shrink-0"
             style={{ backgroundColor: "var(--border)" }}
@@ -116,6 +149,20 @@ export function Topbar({ onNewLayout, onLoad, onSave }: TopbarProps) {
                 <button
                   type="button"
                   onClick={() => {
+                    onUndo();
+                    setMenuOpen(false);
+                  }}
+                  disabled={!canUndo}
+                  title={undoTitle}
+                  className="w-full px-4 py-3 text-left text-[13px] font-medium transition-colors hover:bg-[var(--surface-2)] touch-manipulation min-h-[44px] flex items-center gap-2 disabled:opacity-50 disabled:pointer-events-none"
+                  style={{ color: "var(--text-primary)" }}
+                >
+                  <UndoIcon />
+                  Undo
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
                     onNewLayout();
                     setMenuOpen(false);
                   }}
@@ -134,6 +181,19 @@ export function Topbar({ onNewLayout, onLoad, onSave }: TopbarProps) {
                   style={{ color: "var(--text-primary)" }}
                 >
                   Load
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    onFillRandomly();
+                    setMenuOpen(false);
+                  }}
+                  disabled={isGridFull}
+                  title={isGridFull ? "Grid is full" : "Fill remaining space with random containers"}
+                  className="w-full px-4 py-3 text-left text-[13px] font-medium transition-colors hover:bg-[var(--surface-2)] touch-manipulation min-h-[44px] flex items-center disabled:opacity-50 disabled:pointer-events-none"
+                  style={{ color: "var(--text-primary)" }}
+                >
+                  Fill randomly
                 </button>
               </div>
             )}
@@ -174,6 +234,20 @@ export function Topbar({ onNewLayout, onLoad, onSave }: TopbarProps) {
               }}
             >
               Load
+            </button>
+            <button
+              type="button"
+              onClick={onFillRandomly}
+              disabled={isGridFull}
+              title={isGridFull ? "Grid is full" : "Fill remaining space with random containers"}
+              className="rounded px-3 py-1.5 font-medium text-[13px] transition-colors hover:bg-[var(--surface-2)] disabled:opacity-50 disabled:pointer-events-none"
+              style={{
+                backgroundColor: "transparent",
+                border: "1px solid var(--border)",
+                color: "var(--text-secondary)",
+              }}
+            >
+              Fill randomly
             </button>
             <button
               type="button"

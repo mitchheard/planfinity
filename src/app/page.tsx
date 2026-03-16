@@ -1,15 +1,17 @@
 "use client";
 
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ContainerPalette } from "@/components/ContainerPalette";
 import { DrawerForm } from "@/components/DrawerForm";
 import { GridPlanner } from "@/components/GridPlanner";
 import { Topbar } from "@/components/Topbar";
 import { useIsMobile } from "@/hooks/useMediaQuery";
+import { pushHistory, popHistory } from "@/lib/layoutHistory";
 import { downloadLayoutFile, parseLayoutFile } from "@/lib/layoutFile";
+import { fillGridRandomly } from "@/lib/fillRandomly";
 import { deriveDrawerUnits, isPlacementFullyWithinBounds } from "@/lib/planner";
 import { buildPrintSummary } from "@/lib/printSummary";
-import type { BaseplateStrategy, ContainerType, DrawerInput, Placement } from "@/types/planfinity";
+import type { BaseplateStrategy, ContainerType, DrawerInput, HistoryEntry, Placement } from "@/types/planfinity";
 
 type MobileTabId = "containers" | "stats" | "baseplates";
 
@@ -60,13 +62,47 @@ export default function HomePage() {
   const [drawerInput, setDrawerInput] = useState<DrawerInput>(DEFAULT_DRAWER_INPUT);
   const [selectedContainerTypeId, setSelectedContainerTypeId] = useState<string>(DEFAULT_CONTAINER_TYPES[0].id);
   const [placements, setPlacements] = useState<Placement[]>([]);
+  const [history, setHistory] = useState<HistoryEntry[]>([]);
   const [baseplateStrategy, setBaseplateStrategy] = useState<BaseplateStrategy>("max-first");
   const [loadError, setLoadError] = useState<string | null>(null);
   const [loadWarning, setLoadWarning] = useState<string | null>(null);
   const [mobileTab, setMobileTab] = useState<MobileTabId>("containers");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  const canUndo = history.length > 0;
+  const lastUndoAction = canUndo ? history[history.length - 1].action : null;
+
+  const handleUndo = useCallback(() => {
+    const result = popHistory(history);
+    if (!result) return;
+    setHistory(result.nextHistory);
+    setDrawerInput(result.entry.drawerInput);
+    setPlacements(result.entry.placements);
+  }, [history]);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === "z") {
+        if (canUndo) {
+          e.preventDefault();
+          handleUndo();
+        }
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [canUndo, handleUndo]);
+
+  const drawerUnits = useMemo(() => deriveDrawerUnits(drawerInput), [drawerInput]);
+  const containerTypeById = useMemo(
+    () => new Map(DEFAULT_CONTAINER_TYPES.map((c) => [c.id, c])),
+    [],
+  );
+
   const handleRotatePlacement = useCallback((placementId: string) => {
+    const placement = placements.find((p) => (p.id ?? `${p.containerTypeId}-${p.x}-${p.y}`) === placementId);
+    const label = placement ? containerTypeById.get(placement.containerTypeId)?.label ?? "container" : "container";
+    setHistory((h) => pushHistory(h, drawerInput, placements, `rotate ${label}`));
     setPlacements((prev) =>
       prev.map((p) => {
         const id = p.id ?? `${p.containerTypeId}-${p.x}-${p.y}`;
@@ -74,16 +110,11 @@ export default function HomePage() {
         return p;
       }),
     );
-  }, []);
+  }, [drawerInput, placements, containerTypeById]);
 
-  const drawerUnits = useMemo(() => deriveDrawerUnits(drawerInput), [drawerInput]);
   const printSummary = useMemo(
     () => buildPrintSummary(drawerUnits, placements, DEFAULT_CONTAINER_TYPES, 5, baseplateStrategy),
     [drawerUnits, placements, baseplateStrategy],
-  );
-  const containerTypeById = useMemo(
-    () => new Map(DEFAULT_CONTAINER_TYPES.map((c) => [c.id, c])),
-    [],
   );
   const coveragePercent = useMemo(
     () => computeCoveragePercent(drawerUnits, placements, containerTypeById),
@@ -106,7 +137,8 @@ export default function HomePage() {
     );
   }, [drawerUnits, placements]);
 
-  const handleApplyDrawerInput = (nextInput: DrawerInput) => {
+  const handleApplyDrawerInput = useCallback((nextInput: DrawerInput) => {
+    setHistory((h) => pushHistory(h, drawerInput, placements, "change dimensions"));
     const nextUnits = deriveDrawerUnits(nextInput);
     setDrawerInput(nextInput);
     setPlacements((prev) => {
@@ -116,14 +148,15 @@ export default function HomePage() {
         return ct ? isPlacementFullyWithinBounds(nextUnits, p, ct) : false;
       });
     });
-  };
+  }, [drawerInput, placements, containerTypeById]);
 
   const handleNewLayout = useCallback(() => {
+    setHistory((h) => pushHistory(h, drawerInput, placements, "new layout"));
     setDrawerInput(DEFAULT_DRAWER_INPUT);
     setPlacements([]);
     setLoadError(null);
     setLoadWarning(null);
-  }, []);
+  }, [drawerInput, placements]);
 
   const handleSave = useCallback(() => {
     setLoadError(null);
@@ -153,6 +186,7 @@ export default function HomePage() {
           return;
         }
         setLoadError(null);
+        setHistory([]);
         setDrawerInput(result.drawerInput);
         setPlacements(result.placements);
         if (result.skippedCount > 0) {
@@ -172,10 +206,46 @@ export default function HomePage() {
     [],
   );
 
-  const handleClearLayout = () => {
+  const handleClearLayout = useCallback(() => {
     if (placements.length === 0) return;
+    setHistory((h) => pushHistory(h, drawerInput, placements, "clear all containers"));
     setPlacements([]);
-  };
+  }, [drawerInput, placements]);
+
+  const handleAddPlacement = useCallback((placement: Placement) => {
+    const label = containerTypeById.get(placement.containerTypeId)?.label ?? placement.containerTypeId;
+    setHistory((h) => pushHistory(h, drawerInput, placements, `place ${label} container`));
+    setPlacements((current) => [...current, placement]);
+  }, [drawerInput, placements, containerTypeById]);
+
+  const handleRemovePlacement = useCallback((placementId: string) => {
+    const placement = placements.find((p) => (p.id ?? `${p.containerTypeId}-${p.x}-${p.y}`) === placementId);
+    const label = placement ? containerTypeById.get(placement.containerTypeId)?.label ?? "container" : "container";
+    setHistory((h) => pushHistory(h, drawerInput, placements, `remove ${label}`));
+    setPlacements((current) =>
+      current.filter((p) => (p.id ?? `${p.containerTypeId}-${p.x}-${p.y}`) !== placementId),
+    );
+  }, [drawerInput, placements, containerTypeById]);
+
+  const isGridFull = useMemo(
+    () =>
+      drawerUnits.widthUnits <= 0 ||
+      drawerUnits.depthUnits <= 0 ||
+      coveragePercent >= 85,
+    [drawerUnits.widthUnits, drawerUnits.depthUnits, coveragePercent],
+  );
+
+  const handleFillRandomly = useCallback(() => {
+    setHistory((h) => pushHistory(h, drawerInput, placements, "fill randomly"));
+    setPlacements(
+      fillGridRandomly(
+        drawerUnits,
+        placements,
+        DEFAULT_CONTAINER_TYPES,
+        containerTypeById,
+      ),
+    );
+  }, [drawerInput, placements, drawerUnits, containerTypeById]);
 
   const handlePrintSummary = () => {
     const printWindow = window.open("", "_blank");
@@ -275,7 +345,16 @@ export default function HomePage() {
         aria-hidden
         onChange={handleFileChange}
       />
-      <Topbar onNewLayout={handleNewLayout} onLoad={handleLoad} onSave={handleSave} />
+      <Topbar
+        onNewLayout={handleNewLayout}
+        onLoad={handleLoad}
+        onSave={handleSave}
+        onFillRandomly={handleFillRandomly}
+        isGridFull={isGridFull}
+        onUndo={handleUndo}
+        canUndo={canUndo}
+        lastUndoAction={lastUndoAction}
+      />
       {(loadError || loadWarning) && (
         <div
           role="alert"
@@ -309,12 +388,8 @@ export default function HomePage() {
             selectedContainerTypeId={selectedContainerTypeId}
             placements={placements}
             coveragePercent={coveragePercent}
-            onAddPlacement={(placement) => setPlacements((current) => [...current, placement])}
-            onRemovePlacement={(placementId) =>
-              setPlacements((current) =>
-                current.filter((p) => (p.id ?? `${p.containerTypeId}-${p.x}-${p.y}`) !== placementId),
-              )
-            }
+            onAddPlacement={handleAddPlacement}
+            onRemovePlacement={handleRemovePlacement}
             onClearLayout={handleClearLayout}
             touchMode={isMobile}
             onRotatePlacement={handleRotatePlacement}
@@ -764,12 +839,8 @@ export default function HomePage() {
             selectedContainerTypeId={selectedContainerTypeId}
             placements={placements}
             coveragePercent={coveragePercent}
-            onAddPlacement={(placement) => setPlacements((current) => [...current, placement])}
-            onRemovePlacement={(placementId) =>
-              setPlacements((current) =>
-                current.filter((p) => (p.id ?? `${p.containerTypeId}-${p.x}-${p.y}`) !== placementId),
-              )
-            }
+            onAddPlacement={handleAddPlacement}
+            onRemovePlacement={handleRemovePlacement}
             onClearLayout={handleClearLayout}
           />
         </main>

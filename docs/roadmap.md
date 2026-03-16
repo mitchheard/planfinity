@@ -62,12 +62,13 @@ The MVP is complete when all criteria below pass:
 
 ## v2 Backlog (Post-MVP)
 
-- Drag-and-drop placement UX
-- Rotate containers (90 degrees)
-- Smart packing suggestions/autolayout
-- Prompt-based AI layout generation from natural language storage goals (suggest container types + counts to fill the drawer)
-- Multiple saved layouts
-- Import/export layout JSON
-- Print estimate features (material/time)
-- Richer container catalog management
-- Optional cloud sync/authentication
+**Moved to Linear tickets AVIDX-45 through AVIDX-51.** Linear is the source of truth for detailed specs and future development.
+
+- ~~Drag-and-drop placement UX~~ *(moved to Linear)*
+- ~~Rotate containers (90 degrees)~~ *(done)*
+- ~~Fill grid randomly~~ — *Linear AVIDX-42* (replaces smart packing/autolayout)
+- ~~Prompt-based AI layout generation from natural language storage goals~~ *(moved to Linear)*
+- ~~Multiple saved layouts (local-only)~~ *(moved to Linear)*
+- ~~Import/export layout JSON~~ *(done)*
+- ~~Richer container catalog management~~ *(moved to Linear)*
+- ~~Optional cloud sync/authentication~~ *(moved to Linear)*
