@@ -22,6 +22,14 @@ type GridPlannerProps = {
   onAddPlacement: (placement: Placement) => void;
   onRemovePlacement: (placementId: string) => void;
   onClearLayout: () => void;
+  /** When true, show touch tip and tap-on-placement rotates instead of remove */
+  touchMode?: boolean;
+  /** Optional: tap on placed container rotates it (used in touch mode) */
+  onRotatePlacement?: (placementId: string) => void;
+  /** When true, grid fills container with aspect ratio (for mobile responsive) */
+  fillContainer?: boolean;
+  /** When true, hide the grid footer (meta + coverage bar) - e.g. when stats are in a mobile tab */
+  hideFooter?: boolean;
 };
 
 export function GridPlanner({
@@ -34,6 +42,10 @@ export function GridPlanner({
   onAddPlacement,
   onRemovePlacement,
   onClearLayout,
+  touchMode = false,
+  onRotatePlacement,
+  fillContainer = false,
+  hideFooter = false,
 }: GridPlannerProps) {
   const [placementError, setPlacementError] = useState<string | null>(null);
   const [hoverCell, setHoverCell] = useState<{ x: number; y: number } | null>(null);
@@ -187,6 +199,18 @@ export function GridPlanner({
     lineHeight: "18px",
   };
 
+  const handlePlacementClick = (placement: Placement) => {
+    const pid = placement.id ?? `${placement.containerTypeId}-${placement.x}-${placement.y}`;
+    if (touchMode && onRotatePlacement) {
+      onRotatePlacement(pid);
+    } else if (placement.id) {
+      onRemovePlacement(placement.id);
+    }
+  };
+
+  const totalWidthPx = gridWidthPx + extraWidthPx;
+  const totalHeightPx = gridDepthPx + extraDepthPx;
+
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-3">
       {/* Persistent tip banner — always visible, never dismissible */}
@@ -207,13 +231,19 @@ export function GridPlanner({
           className="flex flex-wrap items-center gap-1.5 text-[11.5px] leading-[1.6]"
           style={{ color: "var(--tip-text)" }}
         >
-          Click to place
-          <span style={{ color: "var(--accent-blue-mid)" }}> · </span>
-          Hold <kbd style={keyChipStyle}>R</kbd> to rotate
-          <span style={{ color: "var(--accent-blue-mid)" }}> · </span>
-          Right-click to place rotated
-          <span style={{ color: "var(--accent-blue-mid)" }}> · </span>
-          <kbd style={keyChipStyle}>Ctrl</kbd> + click to place rotated directly
+          {touchMode ? (
+            <>Tap to place · Tap placed container to rotate</>
+          ) : (
+            <>
+              Click to place
+              <span style={{ color: "var(--accent-blue-mid)" }}> · </span>
+              Hold <kbd style={keyChipStyle}>R</kbd> to rotate
+              <span style={{ color: "var(--accent-blue-mid)" }}> · </span>
+              Right-click to place rotated
+              <span style={{ color: "var(--accent-blue-mid)" }}> · </span>
+              <kbd style={keyChipStyle}>Ctrl</kbd> + click to place rotated directly
+            </>
+          )}
         </span>
       </div>
 
@@ -223,23 +253,30 @@ export function GridPlanner({
         style={{
           backgroundColor: "var(--surface)",
           borderColor: "var(--border)",
+          ...(fillContainer && {
+            aspectRatio: `${totalWidthPx} / ${totalHeightPx}`,
+            flex: "0 1 auto",
+            minHeight: 0,
+          }),
         }}
       >
         <div
-          className="absolute inset-0 flex items-center justify-center overflow-auto p-2"
+          className={fillContainer ? "absolute inset-0 flex items-center justify-center p-2" : "absolute inset-0 flex items-center justify-center overflow-auto p-2"}
           onMouseLeave={() => setHoverCell(null)}
         >
           <div
             className="relative shrink-0"
-            style={{
-              width: gridWidthPx + extraWidthPx,
-              height: gridDepthPx + extraDepthPx,
-            }}
+            style={
+              fillContainer
+                ? { width: "100%", height: "100%", maxWidth: totalWidthPx, maxHeight: totalHeightPx }
+                : { width: totalWidthPx, height: totalHeightPx }
+            }
           >
             <svg
-              width={gridWidthPx + extraWidthPx}
-              height={gridDepthPx + extraDepthPx}
-              className="absolute left-0 top-0 block"
+              viewBox={`0 0 ${totalWidthPx} ${totalHeightPx}`}
+              {...(fillContainer
+                ? { width: "100%", height: "100%", preserveAspectRatio: "xMidYMid meet", className: "absolute inset-0 block" }
+                : { width: totalWidthPx, height: totalHeightPx, className: "absolute left-0 top-0 block" })}
             >
               <defs>
                 <pattern
@@ -396,15 +433,24 @@ export function GridPlanner({
               )}
             </svg>
 
-            {/* Invisible cell grid for click targets */}
+            {/* Invisible cell grid for click targets — use 1fr grid when fillContainer so it scales with SVG */}
             <div
-              className="absolute left-0 top-0 grid"
-              style={{
-                width: gridWidthPx,
-                height: gridDepthPx,
-                gridTemplateColumns: `repeat(${drawerUnits.widthUnits}, ${CELL_SIZE_PX}px)`,
-                gridTemplateRows: `repeat(${drawerUnits.depthUnits}, ${CELL_SIZE_PX}px)`,
-              }}
+              className="absolute left-0 top-0 grid border-0"
+              style={
+                fillContainer
+                  ? {
+                      width: "100%",
+                      height: "100%",
+                      gridTemplateColumns: `repeat(${drawerUnits.widthUnits}, 1fr)`,
+                      gridTemplateRows: `repeat(${drawerUnits.depthUnits}, 1fr)`,
+                    }
+                  : {
+                      width: gridWidthPx,
+                      height: gridDepthPx,
+                      gridTemplateColumns: `repeat(${drawerUnits.widthUnits}, ${CELL_SIZE_PX}px)`,
+                      gridTemplateRows: `repeat(${drawerUnits.depthUnits}, ${CELL_SIZE_PX}px)`,
+                    }
+              }
             >
               {Array.from({ length: drawerUnits.widthUnits * drawerUnits.depthUnits }).map((_, index) => {
                 const x = index % drawerUnits.widthUnits;
@@ -413,7 +459,8 @@ export function GridPlanner({
                   <button
                     key={`cell-${x}-${y}`}
                     type="button"
-                    className="cursor-crosshair border-0 bg-transparent p-0"
+                    className="cursor-crosshair border-0 bg-transparent p-0 touch-manipulation"
+                    style={fillContainer ? { gridColumn: x + 1, gridRow: y + 1 } : undefined}
                     onClick={(e) =>
                       placeAtCell(x, y, isRotateHeld || isControlHeld || isAltHeld || e.ctrlKey || e.altKey)
                     }
@@ -429,7 +476,7 @@ export function GridPlanner({
               })}
             </div>
 
-            {/* Invisible placement rects for click-to-remove (positioned over SVG placements) */}
+            {/* Invisible placement rects for click-to-rotate/remove (positioned over SVG placements) */}
             {placements.map((placement) => {
               const ct = containerTypeById.get(placement.containerTypeId);
               if (!ct) return null;
@@ -440,17 +487,26 @@ export function GridPlanner({
                 <button
                   key={pid}
                   type="button"
-                  className="absolute cursor-pointer border-0 bg-transparent p-0"
-                  style={{
-                    left: placement.x * CELL_SIZE_PX,
-                    top: placement.y * CELL_SIZE_PX,
-                    width: w * CELL_SIZE_PX,
-                    height: h * CELL_SIZE_PX,
-                  }}
-                  onClick={() => placement.id && onRemovePlacement(placement.id)}
+                  className={`cursor-pointer border-0 bg-transparent p-0 touch-manipulation ${fillContainer ? "" : "absolute"}`}
+                  style={
+                    fillContainer
+                      ? {
+                          gridColumn: placement.x + 1,
+                          gridRow: placement.y + 1,
+                          gridColumnEnd: `span ${w}`,
+                          gridRowEnd: `span ${h}`,
+                        }
+                      : {
+                          left: placement.x * CELL_SIZE_PX,
+                          top: placement.y * CELL_SIZE_PX,
+                          width: w * CELL_SIZE_PX,
+                          height: h * CELL_SIZE_PX,
+                        }
+                  }
+                  onClick={() => handlePlacementClick(placement)}
                   onMouseEnter={() => setHoverPlacementId(pid)}
                   onMouseLeave={() => setHoverPlacementId(null)}
-                  aria-label={`Remove ${ct.label} at ${placement.x},${placement.y}`}
+                  aria-label={touchMode && onRotatePlacement ? `Rotate ${ct.label} at ${placement.x},${placement.y}` : `Remove ${ct.label} at ${placement.x},${placement.y}`}
                 />
               );
             })}
@@ -458,7 +514,8 @@ export function GridPlanner({
         </div>
       </div>
 
-      {/* Grid footer: meta + coverage bar */}
+      {/* Grid footer: meta + coverage bar (hidden on mobile when stats are in tab) */}
+      {!hideFooter && (
       <div className="flex shrink-0 flex-wrap items-center justify-between gap-3 border-t pt-2" style={{ borderColor: "var(--border)" }}>
         <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px]" style={{ fontFamily: "var(--font-mono)" }}>
           <span>
@@ -501,6 +558,7 @@ export function GridPlanner({
           </div>
         </div>
       </div>
+      )}
 
       {placementError ? (
         <p className="shrink-0 text-[12px]" style={{ color: "var(--text-secondary)" }} aria-live="polite">

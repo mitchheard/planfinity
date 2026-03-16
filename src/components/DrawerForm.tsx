@@ -6,6 +6,8 @@ import type { DrawerInput } from "@/types/planfinity";
 type DrawerFormProps = {
   initialValue: DrawerInput;
   onApply: (value: DrawerInput) => void;
+  /** Compact layout for mobile: smaller labels, pitch on own row, full-width Apply, touch-friendly inputs */
+  compact?: boolean;
 };
 
 function InputWithSuffix({
@@ -13,11 +15,13 @@ function InputWithSuffix({
   onChange,
   suffix,
   ariaLabel,
+  touchFriendly,
 }: {
   value: string;
   onChange: (v: string) => void;
   suffix: string;
   ariaLabel: string;
+  touchFriendly?: boolean;
 }) {
   return (
     <div className="flex overflow-hidden rounded-[var(--radius-sm)] border" style={{ borderColor: "var(--border)" }}>
@@ -27,10 +31,9 @@ function InputWithSuffix({
         value={value}
         onChange={(e) => onChange(e.target.value)}
         aria-label={ariaLabel}
-        className="w-0 min-w-0 flex-1 bg-transparent px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-[var(--accent-blue)]"
+        className={`w-0 min-w-0 flex-1 bg-transparent focus:outline-none focus:ring-2 focus:ring-[var(--accent-blue)] ${touchFriendly ? "px-3 py-2.5 text-base min-h-[44px]" : "px-2 py-1.5 text-[12px]"}`}
         style={{
           fontFamily: "var(--font-mono)",
-          fontSize: "12px",
           color: "var(--text-primary)",
           backgroundColor: "var(--bg)",
           border: "none",
@@ -38,7 +41,7 @@ function InputWithSuffix({
         }}
       />
       <span
-        className="flex shrink-0 items-center px-2 py-1.5 text-[12px]"
+        className={`flex shrink-0 items-center text-[12px] ${touchFriendly ? "px-3 py-2.5" : "px-2 py-1.5"}`}
         style={{
           fontFamily: "var(--font-mono)",
           backgroundColor: "var(--surface-2)",
@@ -51,7 +54,7 @@ function InputWithSuffix({
   );
 }
 
-export function DrawerForm({ initialValue, onApply }: DrawerFormProps) {
+export function DrawerForm({ initialValue, onApply, compact = false }: DrawerFormProps) {
   const [widthMm, setWidthMm] = useState(String(initialValue.widthMm));
   const [depthMm, setDepthMm] = useState(String(initialValue.depthMm));
   const [gridPitchMm, setGridPitchMm] = useState(String(initialValue.gridPitchMm));
@@ -79,9 +82,9 @@ export function DrawerForm({ initialValue, onApply }: DrawerFormProps) {
   };
 
   return (
-    <section>
+    <section className={compact ? "compact-drawer" : undefined}>
       <p
-        className="uppercase tracking-wider text-[10px]"
+        className={`uppercase tracking-wider ${compact ? "text-[10px] mb-1.5" : "text-[10px] mt-0"}`}
         style={{
           fontFamily: "var(--font-mono)",
           color: "var(--text-tertiary)",
@@ -90,26 +93,26 @@ export function DrawerForm({ initialValue, onApply }: DrawerFormProps) {
       >
         Drawer input
       </p>
-      <div className="mt-2 grid grid-cols-2 gap-2">
-        <label className="flex flex-col gap-1">
+      <div className={compact ? "mt-1.5 grid grid-cols-2 gap-2" : "mt-2 grid grid-cols-2 gap-2"}>
+        <label className="flex flex-col gap-0.5">
           <span className="sr-only">Width (mm)</span>
-          <InputWithSuffix value={widthMm} onChange={setWidthMm} suffix="W" ariaLabel="Width mm" />
+          <InputWithSuffix value={widthMm} onChange={setWidthMm} suffix="W" ariaLabel="Width mm" touchFriendly={compact} />
         </label>
-        <label className="flex flex-col gap-1">
+        <label className="flex flex-col gap-0.5">
           <span className="sr-only">Depth (mm)</span>
-          <InputWithSuffix value={depthMm} onChange={setDepthMm} suffix="D" ariaLabel="Depth mm" />
+          <InputWithSuffix value={depthMm} onChange={setDepthMm} suffix="D" ariaLabel="Depth mm" touchFriendly={compact} />
         </label>
       </div>
-      <div className="mt-2">
-        <label className="flex flex-col gap-1">
+      <div className={compact ? "mt-1.5" : "mt-2"}>
+        <label className="flex flex-col gap-0.5">
           <span className="sr-only">Grid pitch (mm)</span>
-          <InputWithSuffix value={gridPitchMm} onChange={setGridPitchMm} suffix="mm" ariaLabel="Grid pitch mm" />
+          <InputWithSuffix value={gridPitchMm} onChange={setGridPitchMm} suffix="mm" ariaLabel="Grid pitch mm" touchFriendly={compact} />
         </label>
       </div>
       <button
         type="button"
         onClick={applyForm}
-        className="mt-3 w-full rounded-[var(--radius-sm)] py-2 text-[13px] font-medium text-white transition-opacity hover:opacity-90"
+        className={`w-full rounded-[var(--radius-sm)] text-[13px] font-medium text-white transition-opacity hover:opacity-90 touch-manipulation ${compact ? "mt-2 py-3 min-h-[44px]" : "mt-3 py-2"}`}
         style={{ backgroundColor: "var(--text-primary)" }}
       >
         Apply

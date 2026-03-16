@@ -5,10 +5,13 @@ import { ContainerPalette } from "@/components/ContainerPalette";
 import { DrawerForm } from "@/components/DrawerForm";
 import { GridPlanner } from "@/components/GridPlanner";
 import { Topbar } from "@/components/Topbar";
+import { useIsMobile } from "@/hooks/useMediaQuery";
 import { downloadLayoutFile, parseLayoutFile } from "@/lib/layoutFile";
 import { deriveDrawerUnits } from "@/lib/planner";
 import { buildPrintSummary } from "@/lib/printSummary";
 import type { BaseplateStrategy, ContainerType, DrawerInput, Placement } from "@/types/planfinity";
+
+type MobileTabId = "containers" | "stats" | "baseplates";
 
 const DEFAULT_DRAWER_INPUT: DrawerInput = {
   widthMm: 600,
@@ -53,13 +56,25 @@ function computeCoveragePercent(
 }
 
 export default function HomePage() {
+  const isMobile = useIsMobile();
   const [drawerInput, setDrawerInput] = useState<DrawerInput>(DEFAULT_DRAWER_INPUT);
   const [selectedContainerTypeId, setSelectedContainerTypeId] = useState<string>(DEFAULT_CONTAINER_TYPES[0].id);
   const [placements, setPlacements] = useState<Placement[]>([]);
   const [baseplateStrategy, setBaseplateStrategy] = useState<BaseplateStrategy>("max-first");
   const [loadError, setLoadError] = useState<string | null>(null);
   const [loadWarning, setLoadWarning] = useState<string | null>(null);
+  const [mobileTab, setMobileTab] = useState<MobileTabId>("containers");
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleRotatePlacement = useCallback((placementId: string) => {
+    setPlacements((prev) =>
+      prev.map((p) => {
+        const id = p.id ?? `${p.containerTypeId}-${p.x}-${p.y}`;
+        if (id === placementId) return { ...p, isRotated: !p.isRotated };
+        return p;
+      }),
+    );
+  }, []);
 
   const drawerUnits = useMemo(() => deriveDrawerUnits(drawerInput), [drawerInput]);
   const printSummary = useMemo(
@@ -268,8 +283,206 @@ export default function HomePage() {
         </div>
       )}
 
+      {/* Mobile layout: single column + tabbed bottom panel (≤768px) */}
+      <div className="flex-1 min-h-0 flex flex-col max-[768px]:flex min-[769px]:hidden">
+        <section
+          className="shrink-0 border-b px-4 py-3"
+          style={{ backgroundColor: "var(--surface)", borderColor: "var(--border)" }}
+        >
+          <DrawerForm initialValue={drawerInput} onApply={handleApplyDrawerInput} compact />
+        </section>
+        <main
+          className="min-h-0 flex-1 flex flex-col px-4 py-3"
+          style={{ backgroundColor: "var(--bg)" }}
+        >
+          <GridPlanner
+            drawerInput={drawerInput}
+            drawerUnits={drawerUnits}
+            containerTypes={DEFAULT_CONTAINER_TYPES}
+            selectedContainerTypeId={selectedContainerTypeId}
+            placements={placements}
+            coveragePercent={coveragePercent}
+            onAddPlacement={(placement) => setPlacements((current) => [...current, placement])}
+            onRemovePlacement={(placementId) =>
+              setPlacements((current) => current.filter((p) => p.id !== placementId))
+            }
+            onClearLayout={handleClearLayout}
+            touchMode={isMobile}
+            onRotatePlacement={handleRotatePlacement}
+            fillContainer={isMobile}
+            hideFooter={isMobile}
+          />
+        </main>
+        <aside
+          className="shrink-0 border-t"
+          style={{
+            backgroundColor: "var(--surface)",
+            borderColor: "var(--border)",
+            maxHeight: "280px",
+          }}
+        >
+          <div className="flex border-b" style={{ borderColor: "var(--border)" }}>
+            {(
+              [
+                ["containers", "Containers"],
+                ["stats", "Stats"],
+                ["baseplates", "Baseplates"],
+              ] as const
+            ).map(([id, label]) => (
+              <button
+                key={id}
+                type="button"
+                onClick={() => setMobileTab(id)}
+                className="flex-1 py-3 text-[13px] font-medium transition-colors touch-manipulation min-h-[44px]"
+                style={{
+                  fontFamily: "var(--font-mono)",
+                  backgroundColor: mobileTab === id ? "var(--surface-2)" : "transparent",
+                  color: mobileTab === id ? "var(--text-primary)" : "var(--text-secondary)",
+                }}
+                aria-pressed={mobileTab === id}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+          <div className="overflow-y-auto p-3" style={{ maxHeight: "220px" }}>
+            {mobileTab === "containers" && (
+              <ContainerPalette
+                containerTypes={DEFAULT_CONTAINER_TYPES}
+                gridPitchMm={drawerInput.gridPitchMm}
+                selectedContainerTypeId={selectedContainerTypeId}
+                onSelect={setSelectedContainerTypeId}
+                variant="horizontal"
+              />
+            )}
+            {mobileTab === "stats" &&
+              drawerUnits.widthUnits > 0 &&
+              drawerUnits.depthUnits > 0 && (
+                <div className="flex flex-col gap-3 text-[12px]" style={{ fontFamily: "var(--font-sans)" }}>
+                  <div className="flex flex-wrap gap-x-4 gap-y-1" style={{ fontFamily: "var(--font-mono)" }}>
+                    <span style={{ color: "var(--text-tertiary)" }}>Grid:</span>
+                    <span style={{ color: "var(--text-primary)" }}>
+                      {drawerUnits.widthUnits}×{drawerUnits.depthUnits}
+                    </span>
+                    <span style={{ color: "var(--text-tertiary)" }}>·</span>
+                    <span style={{ color: "var(--text-tertiary)" }}>Containers:</span>
+                    <span style={{ color: "var(--text-primary)" }}>{placements.length}</span>
+                  </div>
+                  <div className="space-y-0.5">
+                    {printSummary.containerCounts.length === 0 ? (
+                      <p style={{ color: "var(--text-secondary)" }}>No containers placed.</p>
+                    ) : (
+                      printSummary.containerCounts.map((cc) => (
+                        <p key={cc.containerTypeId} style={{ color: "var(--text-secondary)" }}>
+                          <span style={{ fontFamily: "var(--font-mono)", fontWeight: 500, color: "var(--text-primary)" }}>
+                            {cc.count}×
+                          </span>{" "}
+                          {cc.label}
+                        </p>
+                      ))
+                    )}
+                  </div>
+                  <div>
+                    <div className="flex justify-between items-center mb-1">
+                      <span style={{ color: "var(--text-tertiary)", fontFamily: "var(--font-mono)", fontSize: "10px" }}>Coverage</span>
+                      <span style={{ fontFamily: "var(--font-mono)", color: "var(--text-primary)" }}>{coveragePercent}%</span>
+                    </div>
+                    <div
+                      className="overflow-hidden rounded-[var(--radius-sm)] border h-1"
+                      style={{ backgroundColor: "var(--surface-2)", borderColor: "var(--border)" }}
+                    >
+                      <div
+                        className="h-full rounded-[var(--radius-sm)]"
+                        style={{
+                          width: `${Math.min(100, coveragePercent)}%`,
+                          backgroundColor: "var(--accent-teal)",
+                        }}
+                      />
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handlePrintSummary}
+                    className="flex w-full items-center justify-center gap-2 rounded-[var(--radius-sm)] border py-2.5 text-[12px] font-medium touch-manipulation min-h-[44px]"
+                    style={{
+                      backgroundColor: "var(--surface-2)",
+                      borderColor: "var(--border)",
+                      color: "var(--text-primary)",
+                    }}
+                  >
+                    <ListLinesIcon />
+                    Print list
+                  </button>
+                </div>
+              )}
+            {mobileTab === "baseplates" &&
+              drawerUnits.widthUnits > 0 &&
+              drawerUnits.depthUnits > 0 && (
+                <div className="flex flex-col gap-3 text-[12px]">
+                  <p className="uppercase tracking-wider text-[10px]" style={{ fontFamily: "var(--font-mono)", color: "var(--text-tertiary)", letterSpacing: "0.1em" }}>
+                    Strategy
+                  </p>
+                  <div
+                    className="flex overflow-hidden rounded-[var(--radius-sm)] border"
+                    style={{ borderColor: "var(--border)" }}
+                  >
+                    <button
+                      type="button"
+                      onClick={() => setBaseplateStrategy("max-first")}
+                      className="flex-1 py-2.5 text-[11px] font-medium transition-colors touch-manipulation min-h-[44px]"
+                      style={{
+                        fontFamily: "var(--font-mono)",
+                        backgroundColor: baseplateStrategy === "max-first" ? "var(--text-primary)" : "transparent",
+                        color: baseplateStrategy === "max-first" ? "var(--surface)" : "var(--text-secondary)",
+                      }}
+                      aria-pressed={baseplateStrategy === "max-first"}
+                    >
+                      Max-first
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setBaseplateStrategy("balanced")}
+                      className="flex-1 py-2.5 text-[11px] font-medium transition-colors touch-manipulation min-h-[44px]"
+                      style={{
+                        fontFamily: "var(--font-mono)",
+                        backgroundColor: baseplateStrategy === "balanced" ? "var(--text-primary)" : "transparent",
+                        color: baseplateStrategy === "balanced" ? "var(--surface)" : "var(--text-secondary)",
+                      }}
+                      aria-pressed={baseplateStrategy === "balanced"}
+                    >
+                      Balanced
+                    </button>
+                  </div>
+                  <div className="space-y-0.5" style={{ fontFamily: "var(--font-sans)", color: "var(--text-secondary)" }}>
+                    {printSummary.baseplates.sizeCounts.map((sc) => (
+                      <p key={`${sc.widthUnits}x${sc.depthUnits}`}>
+                        <span style={{ fontFamily: "var(--font-mono)", fontWeight: 500, color: "var(--text-primary)" }}>
+                          {sc.count}×
+                        </span>{" "}
+                        {sc.widthUnits}×{sc.depthUnits}
+                      </p>
+                    ))}
+                  </div>
+                  <div
+                    className="rounded-[var(--radius-md)] border p-2"
+                    style={{ backgroundColor: "var(--bg)", borderColor: "var(--border)" }}
+                  >
+                    <div style={{ fontFamily: "var(--font-mono)", fontSize: "16px", color: "var(--text-primary)" }}>
+                      {printSummary.baseplates.totalTiles}
+                    </div>
+                    <div style={{ fontFamily: "var(--font-mono)", fontSize: "10px", color: "var(--text-tertiary)" }}>
+                      total tiles
+                    </div>
+                  </div>
+                </div>
+              )}
+          </div>
+        </aside>
+      </div>
+
+      {/* Desktop layout: 3-column grid (>768px) */}
       <div
-        className="grid flex-1 min-h-0"
+        className="flex-1 min-h-0 hidden min-[769px]:grid"
         style={{
           gridTemplateColumns: "216px 1fr 196px",
         }}

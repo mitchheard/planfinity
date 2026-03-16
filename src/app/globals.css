@@ -47,3 +47,13 @@ body {
   background: var(--bg);
   font-family: var(--font-sans);
 }
+
+/* Touch-friendly: reduce tap delay and tap highlight on interactive elements */
+@media (max-width: 768px) {
+  button,
+  [role="button"],
+  a {
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+  }
+}

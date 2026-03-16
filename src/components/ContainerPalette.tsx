@@ -9,6 +9,8 @@ type ContainerPaletteProps = {
   gridPitchMm: number;
   selectedContainerTypeId: string;
   onSelect: (id: string) => void;
+  /** "horizontal" = for mobile tab: selected chip + scrollable chip row, no filter/fit finder */
+  variant?: "sidebar" | "horizontal";
 };
 
 type PaletteFilter = "all" | "squares" | "rectangles";
@@ -28,8 +30,10 @@ export function ContainerPalette({
   gridPitchMm,
   selectedContainerTypeId,
   onSelect,
+  variant = "sidebar",
 }: ContainerPaletteProps) {
   const [paletteFilter, setPaletteFilter] = useState<PaletteFilter>("all");
+  const isHorizontal = variant === "horizontal";
   const [objectWidthMmInput, setObjectWidthMmInput] = useState("120");
   const [objectDepthMmInput, setObjectDepthMmInput] = useState("80");
   const [clearanceMmInput, setClearanceMmInput] = useState("2");
@@ -48,8 +52,9 @@ export function ContainerPalette({
     return true;
   });
 
+  const typesForGrouping = isHorizontal ? sortedContainerTypes : filteredContainerTypes;
   const groupedByDepth = new Map<number, ContainerType[]>();
-  filteredContainerTypes.forEach((ct) => {
+  typesForGrouping.forEach((ct) => {
     const list = groupedByDepth.get(ct.depthUnits) ?? [];
     list.push(ct);
     groupedByDepth.set(ct.depthUnits, list);
@@ -108,6 +113,74 @@ export function ContainerPalette({
       hasAnyFit: uniqueSuggestions.length > 0,
     };
   }, [fitSuggestionResult.summary]);
+
+  if (isHorizontal) {
+    return (
+      <div className="flex flex-col gap-3 h-full min-h-0">
+        {selectedContainerType && (
+          <div
+            className="rounded-[var(--radius-md)] border p-2 shrink-0"
+            style={{
+              backgroundColor: "var(--bg)",
+              borderColor: "var(--border)",
+            }}
+          >
+            <div className="flex items-center gap-2">
+              <div
+                className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[var(--radius-sm)] border text-[11px] font-medium"
+                style={{
+                  backgroundColor: isTealContainer(selectedContainerType)
+                    ? "var(--accent-teal-light)"
+                    : "var(--accent-blue-light)",
+                  borderColor: isTealContainer(selectedContainerType)
+                    ? "var(--accent-teal-mid)"
+                    : "var(--accent-blue-mid)",
+                  color: isTealContainer(selectedContainerType) ? "var(--container-teal-label)" : "var(--tip-text)",
+                  fontFamily: "var(--font-mono)",
+                }}
+              >
+                {selectedContainerType.label}
+              </div>
+              <span className="text-[13px] font-medium" style={{ fontFamily: "var(--font-sans)", color: "var(--text-primary)" }}>
+                {selectedContainerType.widthUnits}×{selectedContainerType.depthUnits}
+              </span>
+            </div>
+          </div>
+        )}
+        <div className="flex-1 min-h-0 overflow-x-auto overflow-y-hidden -mx-1 px-1 touch-pan-x">
+          <div className="flex gap-2 pb-2" style={{ minWidth: "min-content" }}>
+            {Array.from(groupedByDepth.entries()).map(([depthUnits, depthGroup]) => (
+              <div key={`depth-${depthUnits}`} className="flex items-center gap-1.5 shrink-0">
+                {depthGroup.map((ct) => {
+                  const isSelected = ct.id === selectedContainerTypeId;
+                  return (
+                    <button
+                      key={ct.id}
+                      type="button"
+                      onClick={() => onSelect(ct.id)}
+                      className="rounded-[var(--radius-sm)] px-3 py-2 text-[12px] font-medium transition-colors touch-manipulation min-h-[44px] shrink-0"
+                      style={{
+                        fontFamily: "var(--font-mono)",
+                        backgroundColor: isSelected ? "var(--accent-blue-light)" : "var(--bg)",
+                        border: `1px solid ${isSelected ? "var(--accent-blue-mid)" : "var(--border)"}`,
+                        color: isSelected ? "var(--tip-text)" : "var(--text-secondary)",
+                      }}
+                      aria-pressed={isSelected}
+                    >
+                      {ct.label}
+                    </button>
+                  );
+                })}
+                {depthUnits < 5 && (
+                  <span className="text-[10px] shrink-0" style={{ fontFamily: "var(--font-mono)", color: "var(--text-tertiary)" }}>|</span>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col gap-4">
