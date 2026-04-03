@@ -81,29 +81,11 @@ export function Topbar({ onNewLayout, onLoad, onSave, onFillRandomly, isGridFull
         >
           Planfinity
         </span>
-        {/* Desktop: Undo then tagline */}
+        {/* Desktop: tagline only */}
         <div
           className="hidden md:flex items-center gap-3 shrink-0"
           aria-hidden
         >
-          <div
-            className="h-5 w-px shrink-0"
-            style={{ backgroundColor: "var(--border)" }}
-          />
-          <button
-            type="button"
-            onClick={onUndo}
-            disabled={!canUndo}
-            title={undoTitle}
-            className="flex items-center gap-1.5 rounded px-2.5 py-1.5 text-[13px] font-medium transition-colors disabled:opacity-50 disabled:pointer-events-none hover:bg-[var(--surface-2)]"
-            style={{
-              color: "var(--text-secondary)",
-            }}
-            aria-label={undoTitle}
-          >
-            <UndoIcon />
-            Undo
-          </button>
           <div
             className="h-5 w-px shrink-0"
             style={{ backgroundColor: "var(--border)" }}
@@ -211,6 +193,22 @@ export function Topbar({ onNewLayout, onLoad, onSave, onFillRandomly, isGridFull
           </>
         ) : (
           <>
+            <button
+              type="button"
+              onClick={onUndo}
+              disabled={!canUndo}
+              title={undoTitle}
+              aria-label={undoTitle}
+              className="rounded px-3 py-1.5 font-medium text-[13px] transition-colors hover:bg-[var(--surface-2)] disabled:opacity-50 disabled:pointer-events-none flex items-center gap-1.5"
+              style={{
+                backgroundColor: "transparent",
+                border: "1px solid var(--border)",
+                color: "var(--text-secondary)",
+              }}
+            >
+              <UndoIcon />
+              Undo
+            </button>
             <button
               type="button"
               onClick={onNewLayout}

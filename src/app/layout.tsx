@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
+import { UMAMI_INSTANCE_URL, UMAMI_WEBSITE_ID } from "@/lib/umamiBootstrap";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -37,6 +38,11 @@ export default function RootLayout({
         <link
           href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500&display=swap"
           rel="stylesheet"
+        />
+        <script
+          defer
+          src={`${UMAMI_INSTANCE_URL}/script.js`}
+          data-website-id={UMAMI_WEBSITE_ID}
         />
       </head>
       <body>{children}</body>

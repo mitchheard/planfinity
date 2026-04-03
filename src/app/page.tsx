@@ -11,6 +11,7 @@ import { downloadLayoutFile, parseLayoutFile } from "@/lib/layoutFile";
 import { fillGridRandomly } from "@/lib/fillRandomly";
 import { deriveDrawerUnits, isPlacementFullyWithinBounds } from "@/lib/planner";
 import { buildPrintSummary } from "@/lib/printSummary";
+import { trackUmamiEvent } from "@/lib/umamiBootstrap";
 import type { BaseplateStrategy, ContainerType, DrawerInput, HistoryEntry, Placement } from "@/types/planfinity";
 
 type MobileTabId = "containers" | "stats" | "baseplates";
@@ -151,6 +152,7 @@ export default function HomePage() {
   }, [drawerInput, placements, containerTypeById]);
 
   const handleNewLayout = useCallback(() => {
+    trackUmamiEvent("drawer_created");
     setHistory((h) => pushHistory(h, drawerInput, placements, "new layout"));
     setDrawerInput(DEFAULT_DRAWER_INPUT);
     setPlacements([]);
@@ -159,6 +161,8 @@ export default function HomePage() {
   }, [drawerInput, placements]);
 
   const handleSave = useCallback(() => {
+    trackUmamiEvent("layout_saved");
+    trackUmamiEvent("export_triggered");
     setLoadError(null);
     setLoadWarning(null);
     downloadLayoutFile(drawerInput, placements);
@@ -185,6 +189,7 @@ export default function HomePage() {
           setLoadWarning(null);
           return;
         }
+        trackUmamiEvent("layout_loaded");
         setLoadError(null);
         setHistory([]);
         setDrawerInput(result.drawerInput);
@@ -214,6 +219,10 @@ export default function HomePage() {
 
   const handleAddPlacement = useCallback((placement: Placement) => {
     const label = containerTypeById.get(placement.containerTypeId)?.label ?? placement.containerTypeId;
+    trackUmamiEvent("container_placed", {
+      container_type_id: placement.containerTypeId,
+      rotated: placement.isRotated ?? false,
+    });
     setHistory((h) => pushHistory(h, drawerInput, placements, `place ${label} container`));
     setPlacements((current) => [...current, placement]);
   }, [drawerInput, placements, containerTypeById]);
@@ -250,6 +259,8 @@ export default function HomePage() {
   const handlePrintSummary = () => {
     const printWindow = window.open("", "_blank");
     if (!printWindow) return;
+    trackUmamiEvent("print_summary_viewed");
+    trackUmamiEvent("export_triggered");
 
     const escapeHtml = (value: string) =>
       value
