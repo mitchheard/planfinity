@@ -347,7 +347,7 @@ export default function HomePage() {
   };
 
   return (
-    <div className="flex h-screen flex-col overflow-hidden" style={{ height: "100vh" }}>
+    <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
       <input
         ref={fileInputRef}
         type="file"

@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
+import { SiteFooter } from "@/components/SiteFooter";
 import { UMAMI_INSTANCE_URL, UMAMI_WEBSITE_ID } from "@/lib/umamiBootstrap";
 import "./globals.css";
 
@@ -45,7 +46,12 @@ export default function RootLayout({
           data-website-id={UMAMI_WEBSITE_ID}
         />
       </head>
-      <body>{children}</body>
+      <body>
+        <div className="flex min-h-screen flex-col">
+          {children}
+          <SiteFooter />
+        </div>
+      </body>
     </html>
   );
 }
